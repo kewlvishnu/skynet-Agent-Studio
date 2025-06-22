@@ -40,7 +40,7 @@
 	}
 
 	.dark {
-		--background: 223 84% 5%;
+		--background: #020817;
 		--foreground: 0 0% 98%;
 		--card: 0 0% 3.9%;
 		--card-foreground: 0 0% 98%;
@@ -64,7 +64,7 @@
 		--chart-3: 30 80% 55%;
 		--chart-4: 280 65% 60%;
 		--chart-5: 340 75% 55%;
-		--sidebar-background: 240 5.9% 10%;
+		--sidebar-background: #020817;
 		--sidebar-foreground: 240 4.8% 95.9%;
 		--sidebar-primary: 224.3 76.3% 48%;
 		--sidebar-primary-foreground: 0 0% 100%;
@@ -93,4 +93,16 @@
   body {
     @apply bg-background text-foreground;
 	}
+}
+
+::-webkit-scrollbar {
+	width: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+	@apply bg-gray-700 rounded-full;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
 }
