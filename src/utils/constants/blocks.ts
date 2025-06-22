@@ -1,3 +1,4 @@
+import { nodeTypes } from "@/components/nodes";
 import {
 	BotIcon,
 	BrainIcon,
@@ -13,7 +14,7 @@ import {
 
 export type Block = {
 	id: number;
-	type: string;
+	type: keyof typeof nodeTypes;
 	title: string;
 	description: string;
 	icon: React.ElementType;

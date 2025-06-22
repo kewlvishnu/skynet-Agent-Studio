@@ -44,7 +44,7 @@ export default function AppSidebar() {
 					<div className="w-full h-full">
 						<TabsContent
 							value="blocks"
-							className="w-full h-full overflow-y-auto"
+							className="w-full h-[calc(100%-4rem)] overflow-y-auto"
 						>
 							<div className="w-[90%] mx-auto h-full gap-4 flex flex-col">
 								{blocks.map((block) => {
@@ -53,6 +53,13 @@ export default function AppSidebar() {
 										<div
 											key={block.type}
 											className="w-full h-full border border-gray-700 rounded-lg p-3 flex items-center gap-2"
+											draggable
+											onDragStart={(e) => {
+												e.dataTransfer.setData(
+													"application/reactflow",
+													JSON.stringify(block)
+												);
+											}}
 										>
 											<div
 												className={`${block.color} size-8 rounded-sm flex items-center justify-center`}
