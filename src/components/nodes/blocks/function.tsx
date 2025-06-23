@@ -4,7 +4,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Handle, Position } from "@xyflow/react";
 import { Code, Copy, Maximize2, Trash, Edit } from "lucide-react";
 
-export default function FunctionNode() {
+interface FunctionNodeProps {
+	id: string;
+	data: {
+		label?: string;
+		onDelete?: (nodeId: string) => void;
+	};
+}
+
+export default function FunctionNode({ id, data }: FunctionNodeProps) {
 	const [content, setContent] = useState("Write JavaScript...");
 	const [isEditing, setIsEditing] = useState(false);
 
@@ -17,7 +25,7 @@ export default function FunctionNode() {
 							<Code className="w-5 h-5" />
 						</div>
 						<h1 className="text-lg font-semibold text-white">
-							Function 1
+							{data.label || "Function 1"}
 						</h1>
 					</div>
 					<div className="flex items-center gap-2">
@@ -95,6 +103,7 @@ export default function FunctionNode() {
 				<Button
 					variant="ghost"
 					size="icon"
+					onClick={() => data.onDelete?.(id)}
 					className="text-slate-400 hover:text-white"
 				>
 					<Trash className="w-4 h-4" />

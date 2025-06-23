@@ -14,7 +14,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Handle, Position } from "@xyflow/react";
 import { Bot, Code, Copy, Maximize2, Plus, Trash } from "lucide-react";
 
-export default function AgentNode() {
+interface AgentNodeProps {
+	id: string;
+	data: {
+		label?: string;
+		onDelete?: (nodeId: string) => void;
+	};
+}
+
+export default function AgentNode({ id, data }: AgentNodeProps) {
 	return (
 		<div className="group relative w-86">
 			<div className="w-80 bg-gray-950 border border-gray-700 rounded-md py-4 flex flex-col gap-2">
@@ -23,7 +31,9 @@ export default function AgentNode() {
 						<div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
 							<Bot className="w-5 h-5" />
 						</div>
-						<h1 className="text-lg font-semibold">Agent 1</h1>
+						<h1 className="text-lg font-semibold">
+							{data.label || "Agent 1"}
+						</h1>
 					</div>
 					<div className="flex items-center gap-2">
 						<Button
@@ -164,7 +174,12 @@ export default function AgentNode() {
 				/>
 			</div>
 			<div className="absolute top-0 -right-10">
-				<Button variant="ghost" size="icon">
+				<Button
+					variant="ghost"
+					size="icon"
+					onClick={() => data.onDelete?.(id)}
+					className="text-slate-400 hover:text-white"
+				>
 					<Trash className="w-4 h-4" />
 				</Button>
 			</div>

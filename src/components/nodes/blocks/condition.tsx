@@ -12,7 +12,15 @@ import {
 	ChevronDown,
 } from "lucide-react";
 
-export default function ConditionNode() {
+interface ConditionNodeProps {
+	id: string;
+	data: {
+		label?: string;
+		onDelete?: (nodeId: string) => void;
+	};
+}
+
+export default function ConditionNode({ id, data }: ConditionNodeProps) {
 	const [conditions, setConditions] = useState([
 		{ type: "if", expanded: true, content: "" },
 		{ type: "else", expanded: false, content: "" },
@@ -56,7 +64,7 @@ export default function ConditionNode() {
 							<GitBranch className="w-5 h-5" />
 						</div>
 						<h1 className="text-lg font-semibold text-white">
-							Condition 1
+							{data.label || "Condition 1"}
 						</h1>
 					</div>
 					<div className="flex items-center gap-2">
@@ -194,6 +202,7 @@ export default function ConditionNode() {
 				<Button
 					variant="ghost"
 					size="icon"
+					onClick={() => data.onDelete?.(id)}
 					className="text-slate-400 hover:text-white"
 				>
 					<Trash className="w-4 h-4" />

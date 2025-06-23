@@ -11,7 +11,15 @@ import {
 import { Handle, Position } from "@xyflow/react";
 import { Layers, Copy, Maximize2, Trash, Info } from "lucide-react";
 
-export default function WorkflowNode() {
+interface WorkflowNodeProps {
+	id: string;
+	data: {
+		label?: string;
+		onDelete?: (nodeId: string) => void;
+	};
+}
+
+export default function WorkflowNode({ id, data }: WorkflowNodeProps) {
 	return (
 		<div className="group relative w-86">
 			<div className="w-80 bg-gray-950 border border-gray-700 rounded-md py-4 flex flex-col gap-2">
@@ -21,7 +29,7 @@ export default function WorkflowNode() {
 							<Layers className="w-5 h-5" />
 						</div>
 						<h1 className="text-lg font-semibold text-white">
-							Workflow 1
+							{data.label || "Workflow 1"}
 						</h1>
 					</div>
 					<div className="flex items-center gap-2">
@@ -125,6 +133,7 @@ export default function WorkflowNode() {
 				<Button
 					variant="ghost"
 					size="icon"
+					onClick={() => data.onDelete?.(id)}
 					className="text-slate-400 hover:text-white"
 				>
 					<Trash className="w-4 h-4" />

@@ -31,6 +31,15 @@ export default function Home() {
 				description: "Start",
 				icon: "🚀",
 				color: "bg-blue-500",
+				onDelete: (nodeId: string) => {
+					setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+					setEdges((eds) =>
+						eds.filter(
+							(edge) =>
+								edge.source !== nodeId && edge.target !== nodeId
+						)
+					);
+				},
 			},
 		},
 	]);
@@ -79,6 +88,15 @@ export default function Home() {
 				icon: block.icon,
 				color: block.color,
 				blockType: block.type,
+				onDelete: (nodeId: string) => {
+					setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+					setEdges((eds) =>
+						eds.filter(
+							(edge) =>
+								edge.source !== nodeId && edge.target !== nodeId
+						)
+					);
+				},
 			},
 		};
 

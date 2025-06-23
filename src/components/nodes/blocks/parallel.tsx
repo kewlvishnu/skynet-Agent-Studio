@@ -10,7 +10,15 @@ import {
 import { Handle, Position } from "@xyflow/react";
 import { ChevronDown, Split, Trash } from "lucide-react";
 
-export default function ParallelNode() {
+interface ParallelNodeProps {
+	id: string;
+	data: {
+		label?: string;
+		onDelete?: (nodeId: string) => void;
+	};
+}
+
+export default function ParallelNode({ id, data }: ParallelNodeProps) {
 	const [items, setItems] = useState('["item1", "item2", "item3"]');
 	const [isOpen, setIsOpen] = useState(false);
 
@@ -101,6 +109,7 @@ export default function ParallelNode() {
 				<Button
 					variant="ghost"
 					size="icon"
+					onClick={() => data.onDelete?.(id)}
 					className="text-slate-400 hover:text-white"
 				>
 					<Trash className="w-4 h-4" />

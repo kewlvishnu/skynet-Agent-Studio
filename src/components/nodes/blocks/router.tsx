@@ -12,7 +12,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Handle, Position } from "@xyflow/react";
 import { GitMerge, Copy, Maximize2, Trash } from "lucide-react";
 
-export default function RouterNode() {
+interface RouterNodeProps {
+	id: string;
+	data: {
+		label?: string;
+		onDelete?: (nodeId: string) => void;
+	};
+}
+
+export default function RouterNode({ id, data }: RouterNodeProps) {
 	const [prompt, setPrompt] = useState(
 		"Route to the correct block based on the input..."
 	);
@@ -26,7 +34,7 @@ export default function RouterNode() {
 							<GitMerge className="w-5 h-5" />
 						</div>
 						<h1 className="text-lg font-semibold text-white">
-							Router 1
+							{data.label || "Router 1"}
 						</h1>
 					</div>
 					<div className="flex items-center gap-2">
@@ -105,6 +113,7 @@ export default function RouterNode() {
 				<Button
 					variant="ghost"
 					size="icon"
+					onClick={() => data.onDelete?.(id)}
 					className="text-slate-400 hover:text-white"
 				>
 					<Trash className="w-4 h-4" />

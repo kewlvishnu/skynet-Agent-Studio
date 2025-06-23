@@ -12,7 +12,15 @@ import { Input } from "@/components/ui/input";
 import { Handle, Position } from "@xyflow/react";
 import { Book, Copy, Maximize2, Trash, Search } from "lucide-react";
 
-export default function KnowledgeNode() {
+interface KnowledgeNodeProps {
+	id: string;
+	data: {
+		label?: string;
+		onDelete?: (nodeId: string) => void;
+	};
+}
+
+export default function KnowledgeNode({ id, data }: KnowledgeNodeProps) {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [numberOfResults, setNumberOfResults] = useState("");
 
@@ -25,7 +33,7 @@ export default function KnowledgeNode() {
 							<Book className="w-5 h-5" />
 						</div>
 						<h1 className="text-lg font-semibold text-white">
-							Knowledge 1
+							{data.label || "Knowledge 1"}
 						</h1>
 					</div>
 					<div className="flex items-center gap-2">
@@ -146,6 +154,7 @@ export default function KnowledgeNode() {
 				<Button
 					variant="ghost"
 					size="icon"
+					onClick={() => data.onDelete?.(id)}
 					className="text-slate-400 hover:text-white"
 				>
 					<Trash className="w-4 h-4" />
