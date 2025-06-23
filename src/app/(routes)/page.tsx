@@ -5,8 +5,13 @@ import {
 	Background,
 	BackgroundVariant,
 	applyNodeChanges,
+	applyEdgeChanges,
+	addEdge,
 	OnNodesChange,
+	OnEdgesChange,
+	OnConnect,
 	Node,
+	Edge,
 } from "@xyflow/react";
 import AppSidebar from "@/components/workspace-sidebar";
 import "@xyflow/react/dist/style.css";
@@ -27,11 +32,21 @@ export default function Home() {
 			},
 		},
 	]);
-	// const [edges, setEdges] = useState<Edge[]>([]);
+	const [edges, setEdges] = useState<Edge[]>([]);
 
 	const onNodesChange: OnNodesChange = useCallback(
 		(changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
 		[setNodes]
+	);
+
+	const onEdgesChange: OnEdgesChange = useCallback(
+		(changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+		[setEdges]
+	);
+
+	const onConnect: OnConnect = useCallback(
+		(connection) => setEdges((eds) => addEdge(connection, eds)),
+		[setEdges]
 	);
 
 	const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -83,8 +98,10 @@ export default function Home() {
 					onDragOver={onDragOver}
 					onDrop={onDrop}
 					onNodesChange={onNodesChange}
+					onEdgesChange={onEdgesChange}
+					onConnect={onConnect}
 					nodes={nodes}
-					// edges={edges}
+					edges={edges}
 				>
 					<Background
 						className="bg-[#0d1525]"

@@ -180,12 +180,12 @@ export default function ConditionNode() {
 
 				<Handle
 					type="target"
-					position={Position.Right}
+					position={Position.Left}
 					className="w-3 h-3 bg-blue-400"
 				/>
 				<Handle
 					type="source"
-					position={Position.Left}
+					position={Position.Right}
 					className="w-3 h-3 bg-orange-400"
 				/>
 			</div>

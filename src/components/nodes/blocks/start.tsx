@@ -109,7 +109,7 @@ export default function StartNode() {
 				)}
 			</div>
 			<Handle
-				type="target"
+				type="source"
 				position={Position.Right}
 				className="w-3 h-3 bg-orange-400"
 			/>
