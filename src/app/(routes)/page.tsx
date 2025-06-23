@@ -17,6 +17,8 @@ import AppSidebar from "@/components/workspace-sidebar";
 import "@xyflow/react/dist/style.css";
 import { nodeTypes } from "@/components/nodes";
 import { useState, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Copy } from "lucide-react";
 
 export default function Home() {
 	const [nodes, setNodes] = useState<Node[]>([
@@ -83,6 +85,78 @@ export default function Home() {
 		setNodes((prev) => [...prev, newNode]);
 	};
 
+	const exportConnections = () => {
+		const nodeConnections = nodes.map((node) => {
+			const incomingConnections = edges
+				.filter((edge) => edge.target === node.id)
+				.map((edge) => ({
+					sourceNodeId: edge.source,
+					sourceNodeType:
+						nodes.find((n) => n.id === edge.source)?.type ||
+						"unknown",
+					sourceNodeLabel:
+						nodes.find((n) => n.id === edge.source)?.data?.label ||
+						"Unknown",
+				}));
+
+			const outgoingConnections = edges
+				.filter((edge) => edge.source === node.id)
+				.map((edge) => ({
+					targetNodeId: edge.target,
+					targetNodeType:
+						nodes.find((n) => n.id === edge.target)?.type ||
+						"unknown",
+					targetNodeLabel:
+						nodes.find((n) => n.id === edge.target)?.data?.label ||
+						"Unknown",
+				}));
+
+			return {
+				nodeId: node.id,
+				nodeType: node.type,
+				nodeLabel: node.data?.label || "Unknown",
+				incomingConnections,
+				outgoingConnections,
+				totalIncoming: incomingConnections.length,
+				totalOutgoing: outgoingConnections.length,
+			};
+		});
+
+		const connectionsData = {
+			summary: {
+				totalNodes: nodes.length,
+				totalConnections: edges.length,
+				timestamp: new Date().toISOString(),
+			},
+			nodeConnections,
+			rawEdges: edges.map((edge) => ({
+				id: edge.id,
+				source: edge.source,
+				target: edge.target,
+				sourceLabel:
+					nodes.find((n) => n.id === edge.source)?.data?.label ||
+					"Unknown",
+				targetLabel:
+					nodes.find((n) => n.id === edge.target)?.data?.label ||
+					"Unknown",
+			})),
+		};
+
+		navigator.clipboard
+			.writeText(JSON.stringify(connectionsData, null, 2))
+			.then(() => {
+				alert(
+					"Connections JSON copied to clipboard! Also check the console for detailed view."
+				);
+			})
+			.catch((err) => {
+				console.error("Failed to copy to clipboard:", err);
+				alert(
+					"Connections JSON logged to console. Please copy from there."
+				);
+			});
+	};
+
 	return (
 		<div className="w-full max-h-[calc(100svh-4rem)] relative flex overflow-hidden">
 			<SidebarProvider className="h-full w-fit">
@@ -91,6 +165,15 @@ export default function Home() {
 					<SidebarTrigger className="absolute bottom-5 left-3 z-10" />
 				</>
 			</SidebarProvider>
+
+			<Button
+				onClick={exportConnections}
+				className="absolute top-5 right-5 z-10 bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+				size="sm"
+			>
+				<Copy className="w-4 h-4" />
+				Export JSON
+			</Button>
 
 			<div className="flex-1 overflow-auto mt-2">
 				<ReactFlow
