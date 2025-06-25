@@ -1,69 +1,112 @@
+"use client";
 import { Bot, LibraryBig, Plus, ScrollText, Settings } from "lucide-react";
-import React from "react";
 
-export default function sidebar() {
+import {
+	Sidebar,
+	SidebarContent,
+	SidebarFooter,
+	SidebarGroup,
+	SidebarGroupAction,
+	SidebarGroupContent,
+	SidebarGroupLabel,
+	SidebarHeader,
+	SidebarMenu,
+	SidebarMenuButton,
+	SidebarMenuItem,
+	SidebarTrigger,
+} from "@/components/ui/sidebar";
+
+const workflows = [
+	{ color: "bg-pink-500", name: "Workflow 1" },
+	{ color: "bg-blue-500", name: "Workflow 2" },
+];
+
+const navigationItems = [
+	{
+		icon: ScrollText,
+		name: "Logs",
+		url: "#",
+	},
+	{
+		icon: LibraryBig,
+		name: "Knowledge",
+		url: "#",
+	},
+	{
+		icon: Settings,
+		name: "Settings",
+		url: "#",
+	},
+];
+
+export function AppSidebar() {
 	return (
-		<aside className="w-64 h-full border-r border-gray-800">
-			<div className="flex flex-col gap-8 py-4 px-3">
-				<div className="w-full flex items-center gap-2.5">
+		<Sidebar className="border-gray-800" collapsible="icon">
+			<SidebarHeader>
+				<div className="flex items-center gap-2.5 px-2">
 					<div className="size-6 rounded bg-purple-800 flex items-center justify-center">
-						<Bot className="size-5" />
+						<Bot className="size-5 text-white" />
 					</div>
 					<h1 className="truncate max-w-[120px] text-sm font-medium">
 						Chandra Bose
 					</h1>
 				</div>
-				<div className="w-full flex flex-col items-center gap-2.5">
-					<div className="flex items-center gap-2.5 justify-between w-full">
-						<h3 className="text-sm text-gray-400 font-medium">
+			</SidebarHeader>
+
+			<SidebarContent>
+				<SidebarGroup className="group-data-[collapsible=icon]:hidden">
+					<div className="flex items-center justify-between">
+						<SidebarGroupLabel className="text-gray-400">
 							Workflows
-						</h3>
-						<Plus className="size-4" />
+						</SidebarGroupLabel>
+						<SidebarGroupAction>
+							<Plus className="size-4" />
+							<span className="sr-only">Add Workflow</span>
+						</SidebarGroupAction>
 					</div>
-					<div className="flex flex-col w-full gap-2">
-						{[
-							{ color: "bg-pink-500", name: "Workflow 1" },
-							{ color: "bg-blue-500", name: "Workflow 2" },
-						].map((item, index) => (
-							<div
-								key={index}
-								className="flex items-center gap-2.5 w-full rounded-md p-2 px-3 bg-gray-500/20"
-							>
+					<SidebarGroupContent>
+						<div className="flex flex-col gap-2">
+							{workflows.map((workflow, index) => (
 								<div
-									className={`size-4 ${item.color} rounded`}
-								/>
-								<h4 className="text-sm font-medium">
-									{item.name}
-								</h4>
-							</div>
-						))}
-					</div>
-				</div>
-				<div className="flex flex-col items-center gap-3 justify-between w-full text-gray-400">
-					{[
-						{
-							icon: <ScrollText className="w-4" />,
-							name: "Logs",
-						},
-						{
-							icon: <LibraryBig className="w-4" />,
-							name: "Knowledge",
-						},
-						{
-							icon: <Settings className="w-4" />,
-							name: "Settings",
-						},
-					].map((item, index) => (
-						<div
-							key={index}
-							className="flex items-center gap-2.5 w-full"
-						>
-							{item.icon}
-							<h4 className="text-sm font-medium">{item.name}</h4>
+									key={index}
+									className="flex items-center gap-2.5 w-full rounded-md p-2 px-3 bg-gray-500/20"
+								>
+									<div
+										className={`size-4 ${workflow.color} rounded`}
+									/>
+									<h4 className="text-sm font-medium">
+										{workflow.name}
+									</h4>
+								</div>
+							))}
 						</div>
-					))}
-				</div>
-			</div>
-		</aside>
+					</SidebarGroupContent>
+				</SidebarGroup>
+
+				<SidebarGroup>
+					<SidebarGroupContent>
+						<SidebarMenu>
+							{navigationItems.map((item) => (
+								<SidebarMenuItem key={item.name}>
+									<SidebarMenuButton
+										asChild
+										className="text-gray-400 hover:text-white"
+										tooltip={item.name}
+									>
+										<a href={item.url}>
+											<item.icon className="w-4 h-4" />
+											<span>{item.name}</span>
+										</a>
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							))}
+						</SidebarMenu>
+					</SidebarGroupContent>
+				</SidebarGroup>
+			</SidebarContent>
+			<SidebarFooter>
+				<SidebarTrigger />
+			</SidebarFooter>
+		</Sidebar>
 	);
 }

@@ -266,9 +266,11 @@ export default function Home() {
 					onConnect={onConnect}
 					nodes={nodes}
 					edges={edges}
+					minZoom={1}
+					maxZoom={2}
+					defaultViewport={{ x: 0, y: 0, zoom: 1 }}
 				>
 					<Background
-						className="bg-[#0d1525]"
 						variant={BackgroundVariant.Dots}
 						gap={12}
 						size={0.5}
