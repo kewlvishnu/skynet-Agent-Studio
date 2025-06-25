@@ -81,17 +81,25 @@
 	}
 	body {
 		@apply bg-background text-foreground w-full h-full;
+		font-family: var(--font-switzer), system-ui, sans-serif;
+	}
+
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		font-family: var(--font-clash-display), system-ui, sans-serif;
 	}
 }
 
-
-
 @layer base {
-  * {
-    @apply border-border;
+	* {
+		@apply border-border;
 	}
-  body {
-    @apply bg-background text-foreground;
+	body {
+		@apply bg-background text-foreground;
 	}
 }
 

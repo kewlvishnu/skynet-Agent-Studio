@@ -1,10 +1,26 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const inter = Inter({
-	subsets: ["latin"],
-	variable: "--font-inter",
+const switzer = localFont({
+	src: [
+		{
+			path: "../../public/fonts/Switzer_Complete/Fonts/TTF/Switzer-Variable.ttf",
+			style: "normal",
+		},
+		{
+			path: "../../public/fonts/Switzer_Complete/Fonts/TTF/Switzer-VariableItalic.ttf",
+			style: "italic",
+		},
+	],
+	variable: "--font-switzer",
+	display: "swap",
+});
+
+const clashDisplay = localFont({
+	src: "../../public/fonts/ClashGrotesk_Complete/Fonts/TTF/ClashGrotesk-Variable.ttf",
+	variable: "--font-clash-display",
+	display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -19,7 +35,11 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en">
-			<body className={`${inter.variable} antialiased`}>{children}</body>
+			<body
+				className={`${switzer.variable} ${clashDisplay.variable} antialiased`}
+			>
+				{children}
+			</body>
 		</html>
 	);
 }

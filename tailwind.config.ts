@@ -21,6 +21,14 @@ export default {
 	],
 	theme: {
 		extend: {
+			fontFamily: {
+				switzer: ["var(--font-switzer)", "system-ui", "sans-serif"],
+				"clash-display": [
+					"var(--font-clash-display)",
+					"system-ui",
+					"sans-serif",
+				],
+			},
 			colors: {
 				background: "var(--background)",
 				foreground: "hsl(var(--foreground))",
