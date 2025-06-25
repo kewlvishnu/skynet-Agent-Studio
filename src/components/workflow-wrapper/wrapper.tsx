@@ -8,8 +8,10 @@ export default function wrapper({ children }: { children: React.ReactNode }) {
 			<div className="h-16 w-full">
 				<div className="flex items-center justify-between p-4 border-b border-gray-800 w-full">
 					<div className="flex flex-col">
-						<h1 className="text-sm font-medium">Workflow</h1>
-						<p className="text-xs text-gray-400">
+						<h1 className="text-sm font-medium text-foreground">
+							Workflow
+						</h1>
+						<p className="text-xs text-muted-foreground">
 							Saved about 2 hours ago
 						</p>
 					</div>
@@ -21,7 +23,7 @@ export default function wrapper({ children }: { children: React.ReactNode }) {
 					</div>
 				</div>
 			</div>
-			<div className="flex-1 h-full">{children}</div>
+			<div className="flex-1 h-full bg-background">{children}</div>
 		</div>
 	);
 }

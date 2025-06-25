@@ -5,7 +5,7 @@ import React from "react";
 
 export default function layout({ children }: { children: React.ReactNode }) {
 	return (
-		<div className="flex h-screen overflow-">
+		<div className="flex h-screen overflow-hidden bg-background text-foreground">
 			<SidebarProvider>
 				<AppSidebar />
 				<WorkflowWrapper>{children}</WorkflowWrapper>
