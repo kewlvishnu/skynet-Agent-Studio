@@ -17,15 +17,16 @@ import {
 	Node,
 	Edge,
 } from "@xyflow/react";
-import AppSidebar from "@/components/workspace-sidebar";
+import AppSidebar from "@/components/sidebar/workspace-sidebar";
 import "@xyflow/react/dist/style.css";
 import { nodeTypes } from "@/components/nodes";
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
 import CustomEdge from "@/components/edge/custom-edge";
+import RightWorkspaceSidebar from "@/components/sidebar/right-workspace-sidebar";
 
-function SidebarContent() {
+function LeftWorkspaceSidebar() {
 	const { open } = useSidebar();
 
 	return (
@@ -33,6 +34,21 @@ function SidebarContent() {
 			<AppSidebar />
 			<SidebarTrigger
 				className={`absolute bottom-5 left-3 z-10 transition-all duration-200 ${
+					open ? "opacity-0 pointer-events-none" : "opacity-100"
+				}`}
+			/>
+		</>
+	);
+}
+
+function RightSidebar() {
+	const { open } = useSidebar();
+
+	return (
+		<>
+			<RightWorkspaceSidebar />
+			<SidebarTrigger
+				className={`absolute bottom-5 right-3 z-10 transition-all duration-200 ${
 					open ? "opacity-0 pointer-events-none" : "opacity-100"
 				}`}
 			/>
@@ -226,36 +242,10 @@ export default function Home() {
 	return (
 		<div className="w-full max-h-[calc(100svh-4rem)] relative flex overflow-hidden">
 			<SidebarProvider className="h-full w-fit">
-				<SidebarContent />
+				<LeftWorkspaceSidebar />
 			</SidebarProvider>
 
-			<div className="absolute top-5 right-5 z-10 flex items-center gap-2">
-				<Button
-					onClick={() => {
-						const newProcessingState = !isProcessing;
-						setIsProcessing(newProcessingState);
-						updateEdgesProcessing(newProcessingState);
-					}}
-					className={`${
-						isProcessing
-							? "bg-blue-600 hover:bg-blue-700"
-							: "bg-gray-600 hover:bg-gray-700"
-					} text-white flex items-center gap-2`}
-					size="sm"
-				>
-					{isProcessing ? "Processing: ON" : "Processing: OFF"}
-				</Button>
-				<Button
-					onClick={exportConnections}
-					className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
-					size="sm"
-				>
-					<Copy className="w-4 h-4" />
-					Export JSON
-				</Button>
-			</div>
-
-			<div className="flex-1 overflow-auto mt-2">
+			<div className="flex-1 overflow-auto mt-2 relative">
 				<ReactFlow
 					nodeTypes={nodeTypes}
 					edgeTypes={edgeTypes}
@@ -266,8 +256,6 @@ export default function Home() {
 					onConnect={onConnect}
 					nodes={nodes}
 					edges={edges}
-					minZoom={1}
-					maxZoom={2}
 					defaultViewport={{ x: 0, y: 0, zoom: 1 }}
 				>
 					<Background
@@ -276,7 +264,36 @@ export default function Home() {
 						size={0.5}
 					/>
 				</ReactFlow>
+				<div className="absolute top-5 right-5 z-10 flex items-center gap-2">
+					<Button
+						onClick={() => {
+							const newProcessingState = !isProcessing;
+							setIsProcessing(newProcessingState);
+							updateEdgesProcessing(newProcessingState);
+						}}
+						className={`${
+							isProcessing
+								? "bg-blue-600 hover:bg-blue-700"
+								: "bg-gray-600 hover:bg-gray-700"
+						} text-white flex items-center gap-2`}
+						size="sm"
+					>
+						{isProcessing ? "Processing: ON" : "Processing: OFF"}
+					</Button>
+					<Button
+						onClick={exportConnections}
+						className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+						size="sm"
+					>
+						<Copy className="w-4 h-4" />
+						Export JSON
+					</Button>
+				</div>
 			</div>
+
+			<SidebarProvider className="h-full w-fit">
+				<RightSidebar />
+			</SidebarProvider>
 		</div>
 	);
 }

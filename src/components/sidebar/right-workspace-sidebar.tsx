@@ -6,14 +6,16 @@ import {
 	SidebarFooter,
 	SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Input } from "./ui/input";
+import { Input } from "../ui/input";
 import { Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { blocks } from "@/utils/constants/blocks";
 
-export default function AppSidebar() {
+export default function RightWorkspaceSidebar() {
 	return (
-		<Sidebar className="w-60 border-r border-gray-800 absolute top-1 left-0 h-full mt-0.5 bg-background z-20">
+		<Sidebar
+			side="right"
+			className="w-60 border-r border-gray-800 absolute top-1 right-0 h-full mt-0.5 bg-background z-20"
+		>
 			<SidebarHeader className="h-14 ">
 				<div className="flex items-center px-2.5">
 					<Search className="size-4 absolute left-8 text-muted-foreground" />
@@ -45,46 +47,13 @@ export default function AppSidebar() {
 						<TabsContent
 							value="blocks"
 							className="w-full h-[calc(100%-4rem)] overflow-y-auto"
-						>
-							<div className="w-[90%] mx-auto h-full gap-4 flex flex-col">
-								{blocks.map((block) => {
-									const Icon = block.icon;
-									return (
-										<div
-											key={block.type}
-											className="w-full h-full border border-gray-700 rounded-lg p-3 flex items-center gap-2"
-											draggable
-											onDragStart={(e) => {
-												e.dataTransfer.setData(
-													"application/reactflow",
-													JSON.stringify(block)
-												);
-											}}
-										>
-											<div
-												className={`${block.color} size-8 rounded-sm flex items-center justify-center`}
-											>
-												<Icon className="size-5 text-white" />
-											</div>
-											<div className="flex flex-col">
-												<p className="font-medium text-primary-foreground">
-													{block.title}
-												</p>
-												<p className="text-sm text-muted-foreground">
-													{block.description}
-												</p>
-											</div>
-										</div>
-									);
-								})}
-							</div>
-						</TabsContent>
+						></TabsContent>
 						<TabsContent value="tools"></TabsContent>
 					</div>
 				</Tabs>
 			</SidebarContent>
-			<SidebarFooter className="h-16 border-t border-gray-800 z-50 bg-background">
-				<SidebarTrigger className="ml-auto size-8 z-50" />
+			<SidebarFooter className="h-16 border-t border-gray-800 z-50">
+				<SidebarTrigger className="ml-auto size-8 z-50 absolute right-3 bottom-5" />
 			</SidebarFooter>
 		</Sidebar>
 	);

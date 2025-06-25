@@ -1,4 +1,4 @@
-import { AppSidebar } from "@/components/sidebar";
+import { AppSidebar } from "@/components/sidebar/sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import WorkflowWrapper from "@/components/workflow-wrapper/wrapper";
 import React from "react";
