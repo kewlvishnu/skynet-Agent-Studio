@@ -27,13 +27,13 @@ export default function RouterNode({ id, data }: RouterNodeProps) {
 
 	return (
 		<div className="group relative w-86">
-			<div className="w-80 bg-gray-950 border border-gray-700 rounded-md py-4 flex flex-col gap-2">
-				<div className="flex items-center justify-between px-4 pb-3 border-b border-gray-700">
+			<div className="w-80 bg-theme border border-border rounded-lg py-4 flex flex-col gap-2 shadow-lg hover:shadow-brand-green transition-all duration-200">
+				<div className="flex items-center justify-between px-4 pb-3 border-b border-border">
 					<div className="flex items-center gap-3">
-						<div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-							<GitMerge className="w-5 h-5" />
+						<div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-brand-green">
+							<GitMerge className="w-5 h-5 text-white" />
 						</div>
-						<h1 className="text-lg font-semibold text-white">
+						<h1 className="text-lg font-semibold text-foreground">
 							{data.label || "Router 1"}
 						</h1>
 					</div>
@@ -41,14 +41,14 @@ export default function RouterNode({ id, data }: RouterNodeProps) {
 						<Button
 							variant="ghost"
 							size="icon"
-							className="text-slate-400 hover:text-white"
+							className="text-muted-foreground hover:text-brand-green hover:bg-brand-green/10"
 						>
 							<Copy className="w-4 h-4" />
 						</Button>
 						<Button
 							variant="ghost"
 							size="icon"
-							className="text-slate-400 hover:text-white"
+							className="text-muted-foreground hover:text-brand-green hover:bg-brand-green/10"
 						>
 							<Maximize2 className="w-4 h-4" />
 						</Button>
@@ -57,26 +57,26 @@ export default function RouterNode({ id, data }: RouterNodeProps) {
 
 				<div className="px-4 space-y-3">
 					<div className="space-y-1">
-						<Label className="text-sm font-medium text-white">
-							Prompt <span className="text-red-500">*</span>
+						<Label className="text-sm font-medium text-foreground">
+							Prompt <span className="text-destructive">*</span>
 						</Label>
 						<Textarea
 							value={prompt}
 							onChange={(e) => setPrompt(e.target.value)}
 							placeholder="Route to the correct block based on the input..."
-							className="min-h-[100px] bg-transparent border border-gray-700 text-gray-300 placeholder:text-gray-500 resize-none"
+							className="min-h-[100px] bg-background/50 border border-border text-foreground placeholder:text-muted-foreground resize-none focus:border-brand-green"
 						/>
 					</div>
 
 					<div className="space-y-1">
-						<Label className="text-sm font-medium text-white">
-							Model <span className="text-red-500">*</span>
+						<Label className="text-sm font-medium text-foreground">
+							Model <span className="text-destructive">*</span>
 						</Label>
 						<Select defaultValue="gpt-4o">
-							<SelectTrigger className="bg-transparent border border-gray-700 text-white">
+							<SelectTrigger className="bg-background/50 border border-border text-foreground focus:border-brand-green">
 								<SelectValue placeholder="Select Model" />
 							</SelectTrigger>
-							<SelectContent className="bg-gray-950 border border-gray-700 rounded-md">
+							<SelectContent className="bg-card border border-border">
 								{[
 									"gpt-4o",
 									"gpt-4",
@@ -87,7 +87,7 @@ export default function RouterNode({ id, data }: RouterNodeProps) {
 									<SelectItem
 										key={model}
 										value={model}
-										className="text-white hover:bg-gray-800"
+										className="text-foreground hover:bg-brand-green/10 focus:bg-brand-green/20"
 									>
 										{model}
 									</SelectItem>
@@ -100,12 +100,12 @@ export default function RouterNode({ id, data }: RouterNodeProps) {
 				<Handle
 					type="target"
 					position={Position.Left}
-					className="w-3 h-3 bg-blue-400"
+					className="w-3 h-3 bg-brand-blue border-2 border-white"
 				/>
 				<Handle
 					type="source"
 					position={Position.Right}
-					className="w-3 h-3 bg-orange-400"
+					className="w-3 h-3 bg-brand-green border-2 border-white"
 				/>
 			</div>
 
@@ -114,7 +114,7 @@ export default function RouterNode({ id, data }: RouterNodeProps) {
 					variant="ghost"
 					size="icon"
 					onClick={() => data.onDelete?.(id)}
-					className="text-slate-400 hover:text-white"
+					className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
 				>
 					<Trash className="w-4 h-4" />
 				</Button>

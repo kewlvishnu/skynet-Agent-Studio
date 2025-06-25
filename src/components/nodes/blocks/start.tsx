@@ -17,19 +17,23 @@ export default function StartNode() {
 	);
 
 	return (
-		<div className="w-80 bg-gray-950 border border-gray-700 rounded-sm py-2 pb-4 flex flex-col gap-2">
-			<div className="flex items-center justify-between border-b border-gray-700 pb-2 px-3">
+		<div className="w-80 bg-theme border border-border rounded-lg py-2 pb-4 flex flex-col gap-2 shadow-lg hover:shadow-brand-blue transition-all duration-200">
+			<div className="flex items-center justify-between border-b border-border pb-2 px-3">
 				<div className="flex items-center gap-3">
-					<div className="size-6 bg-blue-400 rounded flex items-center justify-center">
+					<div className="size-6 bg-primary rounded flex items-center justify-center shadow-brand-blue">
 						<Play className="size-4 text-white" />
 					</div>
-					<h6 className="text-sm font-medium">Start</h6>
+					<h6 className="text-sm font-medium text-foreground">
+						Start
+					</h6>
 				</div>
-				<Info className="size-4 text-gray-500" />
+				<Info className="size-4 text-muted-foreground" />
 			</div>
 			<div className="px-3 flex flex-col gap-4">
 				<div className="flex flex-col gap-1.5">
-					<h6 className="text-sm font-medium">Start Workflow</h6>
+					<h6 className="text-sm font-medium text-foreground">
+						Start Workflow
+					</h6>
 					<Select
 						value={trigger}
 						onValueChange={(value) =>
@@ -40,16 +44,27 @@ export default function StartNode() {
 					>
 						<SelectTrigger
 							defaultValue={"manual"}
-							className="w-full rounded-sm"
+							className="w-full rounded-sm bg-background/50 border border-border text-foreground focus:border-brand-blue"
 						>
 							<SelectValue placeholder="Select Trigger" />
 						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="manual">Run Manually</SelectItem>
-							<SelectItem value="webhook">
+						<SelectContent className="bg-card border border-border">
+							<SelectItem
+								value="manual"
+								className="text-foreground hover:bg-brand-blue/10"
+							>
+								Run Manually
+							</SelectItem>
+							<SelectItem
+								value="webhook"
+								className="text-foreground hover:bg-brand-blue/10"
+							>
 								On Webhook call
 							</SelectItem>
-							<SelectItem value="schedule">
+							<SelectItem
+								value="schedule"
+								className="text-foreground hover:bg-brand-blue/10"
+							>
 								On Schedule
 							</SelectItem>
 						</SelectContent>
@@ -59,17 +74,17 @@ export default function StartNode() {
 				{trigger === "webhook" && (
 					<div className="flex flex-col gap-4">
 						<div className="flex flex-col gap-1.5">
-							<h6 className="text-sm font-medium">
+							<h6 className="text-sm font-medium text-foreground">
 								Webhook Provider
 							</h6>
 							<Select>
 								<SelectTrigger
 									defaultValue={"webhook"}
-									className="w-full rounded-sm"
+									className="w-full rounded-sm bg-background/50 border border-border text-foreground focus:border-brand-blue"
 								>
 									<SelectValue placeholder="Select Trigger" />
 								</SelectTrigger>
-								<SelectContent>
+								<SelectContent className="bg-card border border-border">
 									{[
 										"Slack",
 										"Gmail",
@@ -80,6 +95,7 @@ export default function StartNode() {
 										<SelectItem
 											key={provider}
 											value={provider}
+											className="text-foreground hover:bg-brand-blue/10"
 										>
 											{provider}
 										</SelectItem>
@@ -88,12 +104,12 @@ export default function StartNode() {
 							</Select>
 						</div>
 						<div className="flex flex-col gap-1.5">
-							<h6 className="text-sm font-medium">
+							<h6 className="text-sm font-medium text-foreground">
 								Webhook Configuration
 							</h6>
 							<Button
 								variant="outline"
-								className="w-full font-light bg-transparent"
+								className="w-full font-light bg-background/50 border-border hover:bg-brand-blue/10 hover:border-brand-blue text-foreground"
 							>
 								<SquareArrowOutUpRight className="size-4" />
 								Configuration Webhook
@@ -103,15 +119,21 @@ export default function StartNode() {
 				)}
 				{trigger === "schedule" && (
 					<div className="flex flex-col gap-1.5">
-						<h6 className="text-sm font-medium">Schedule</h6>
-						<Input type="text" placeholder="Schedule" />
+						<h6 className="text-sm font-medium text-foreground">
+							Schedule
+						</h6>
+						<Input
+							type="text"
+							placeholder="Schedule"
+							className="bg-background/50 border border-border text-foreground placeholder:text-muted-foreground focus:border-brand-blue"
+						/>
 					</div>
 				)}
 			</div>
 			<Handle
 				type="source"
 				position={Position.Right}
-				className="w-3 h-3 bg-orange-400"
+				className="w-3 h-3 bg-brand-blue border-2 border-white"
 			/>
 		</div>
 	);

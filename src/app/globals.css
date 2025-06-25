@@ -4,214 +4,74 @@
 
 @layer base {
 	:root {
-		/* ========================================
-		 SKYNET.IO BRAND COLORS
-		 ======================================== */
-		--brand-blue: 199 89% 48%; /* #0ea5e9 */
-		--brand-purple: 258 90% 66%; /* #a855f7 */
-		--brand-cyan: 188 86% 53%; /* #22d3ee */
-		--brand-indigo: 239 84% 67%; /* #6366f1 */
-
-		/* Extended brand color scales */
-		--brand-blue-50: 204 100% 97%;
-		--brand-blue-100: 204 94% 94%;
-		--brand-blue-200: 201 94% 86%;
-		--brand-blue-300: 199 95% 74%;
-		--brand-blue-400: 198 93% 60%;
-		--brand-blue-500: 199 89% 48%; /* Main #0ea5e9 */
-		--brand-blue-600: 200 98% 39%;
-		--brand-blue-700: 201 96% 32%;
-		--brand-blue-800: 201 90% 27%;
-		--brand-blue-900: 202 80% 24%;
-
-		--brand-purple-50: 250 100% 98%;
-		--brand-purple-100: 251 91% 95%;
-		--brand-purple-200: 251 95% 92%;
-		--brand-purple-300: 252 95% 85%;
-		--brand-purple-400: 255 92% 76%;
-		--brand-purple-500: 258 90% 66%; /* Main #a855f7 */
-		--brand-purple-600: 262 83% 58%;
-		--brand-purple-700: 263 70% 50%;
-		--brand-purple-800: 263 69% 42%;
-		--brand-purple-900: 264 67% 35%;
-
-		--brand-cyan-50: 183 100% 96%;
-		--brand-cyan-100: 185 96% 90%;
-		--brand-cyan-200: 186 94% 82%;
-		--brand-cyan-300: 187 92% 69%;
-		--brand-cyan-400: 188 86% 53%; /* Main #22d3ee */
-		--brand-cyan-500: 189 94% 43%;
-		--brand-cyan-600: 192 91% 36%;
-		--brand-cyan-700: 194 74% 32%;
-		--brand-cyan-800: 195 63% 27%;
-		--brand-cyan-900: 196 75% 24%;
-
-		--brand-indigo-50: 225 100% 97%;
-		--brand-indigo-100: 226 100% 94%;
-		--brand-indigo-200: 228 96% 89%;
-		--brand-indigo-300: 230 94% 82%;
-		--brand-indigo-400: 234 89% 74%;
-		--brand-indigo-500: 239 84% 67%; /* Main #6366f1 */
-		--brand-indigo-600: 243 75% 59%;
-		--brand-indigo-700: 245 58% 51%;
-		--brand-indigo-800: 244 55% 41%;
-		--brand-indigo-900: 242 47% 34%;
-
-		/* Brand gradients */
-		--brand-gradient-primary: linear-gradient(
-			135deg,
-			hsl(var(--brand-blue)) 0%,
-			hsl(var(--brand-purple)) 100%
-		);
-		--brand-gradient-secondary: linear-gradient(
-			135deg,
-			hsl(var(--brand-cyan)) 0%,
-			hsl(var(--brand-indigo)) 100%
-		);
-		--brand-gradient-hero: linear-gradient(
-			135deg,
-			hsl(var(--brand-blue-600)) 0%,
-			hsl(var(--brand-purple-500)) 50%,
-			hsl(var(--brand-indigo-600)) 100%
-		);
-
-		/* Brand shadows with glow effects */
-		--brand-shadow-blue: 0 0 20px hsl(var(--brand-blue) / 0.3);
-		--brand-shadow-purple: 0 0 20px hsl(var(--brand-purple) / 0.3);
-		--brand-shadow-cyan: 0 0 20px hsl(var(--brand-cyan) / 0.3);
-		--brand-shadow-indigo: 0 0 20px hsl(var(--brand-indigo) / 0.3);
+		/* ========== LIGHT THEME COLORS ========== */
+		--bg: 0 0% 100%; /* #FFFFFF */
+		--text: 222 18% 8%; /* #0F1115 */
+		--primary: 222 94% 56%; /* #255FF8 */
+		--secondary: 228 15% 12%; /* #1A1C23 */
+		--accent: 188 100% 50%; /* #00D4FF */
+		--border: 220 17% 89%; /* #E1E3E8 */
+		--muted: 228 5% 63%; /* #9A9CA4 */
 	}
 
 	.dark {
-		/* Brand colors remain the same in dark mode for consistency */
-		/* Only adjust if specific dark variants are needed */
-		--brand-gradient-hero: linear-gradient(
-			135deg,
-			hsl(var(--brand-blue-500)) 0%,
-			hsl(var(--brand-purple-600)) 50%,
-			hsl(var(--brand-indigo-700)) 100%
-		);
+		/* ========== DARK THEME COLORS ========== */
+		--bg: 222 18% 8%; /* #0F1115 */
+		--text: 220 17% 89%; /* #E1E3E8 */
+		--primary: 219 100% 63%; /* #4287FF */
+		--secondary: 222 9% 78%; /* #BFC2CC */
+		--accent: 191 100% 55%; /* #1AD8FF */
+		--border: 230 10% 18%; /* #2A2C33 */
+		--muted: 230 5% 45%; /* #6E7078 */
 	}
+
 }
 
-/* ========================================
-	 BRAND UTILITY CLASSES
-	 ======================================== */
 @layer utilities {
-	/* Background Colors */
-	.bg-brand-blue {
-		background-color: hsl(var(--brand-blue));
+	.bg-theme {
+		background-color: hsl(var(--bg));
 	}
-	.bg-brand-purple {
-		background-color: hsl(var(--brand-purple));
+	.text-theme {
+		color: hsl(var(--text));
 	}
-	.bg-brand-cyan {
-		background-color: hsl(var(--brand-cyan));
+	.text-muted {
+		color: hsl(var(--muted));
 	}
-	.bg-brand-indigo {
-		background-color: hsl(var(--brand-indigo));
+	.text-secondary {
+		color: hsl(var(--secondary));
 	}
-
-	/* Text Colors */
-	.text-brand-blue {
-		color: hsl(var(--brand-blue));
+	.text-primary {
+		color: hsl(var(--primary));
 	}
-	.text-brand-purple {
-		color: hsl(var(--brand-purple));
+	.bg-primary {
+		background-color: hsl(var(--primary));
 	}
-	.text-brand-cyan {
-		color: hsl(var(--brand-cyan));
+	.bg-accent {
+		background-color: hsl(var(--accent));
 	}
-	.text-brand-indigo {
-		color: hsl(var(--brand-indigo));
+	.border-theme {
+		border-color: hsl(var(--border));
 	}
 
-	/* Border Colors */
-	.border-brand-blue {
-		border-color: hsl(var(--brand-blue));
+	.hover\:text-primary:hover {
+		color: hsl(var(--primary));
 	}
-	.border-brand-purple {
-		border-color: hsl(var(--brand-purple));
+	.hover\:bg-primary:hover {
+		background-color: hsl(var(--primary));
 	}
-	.border-brand-cyan {
-		border-color: hsl(var(--brand-cyan));
-	}
-	.border-brand-indigo {
-		border-color: hsl(var(--brand-indigo));
-	}
-
-	/* Gradient Backgrounds */
-	.bg-brand-gradient {
-		background: var(--brand-gradient-primary);
-	}
-	.bg-brand-gradient-secondary {
-		background: var(--brand-gradient-secondary);
-	}
-	.bg-brand-gradient-hero {
-		background: var(--brand-gradient-hero);
-	}
-
-	/* Glow Effects */
-	.shadow-brand-blue {
-		box-shadow: var(--brand-shadow-blue);
-	}
-	.shadow-brand-purple {
-		box-shadow: var(--brand-shadow-purple);
-	}
-	.shadow-brand-cyan {
-		box-shadow: var(--brand-shadow-cyan);
-	}
-	.shadow-brand-indigo {
-		box-shadow: var(--brand-shadow-indigo);
-	}
-
-	/* Hover Effects */
-	.hover\:bg-brand-blue:hover {
-		background-color: hsl(var(--brand-blue));
-	}
-	.hover\:bg-brand-purple:hover {
-		background-color: hsl(var(--brand-purple));
-	}
-	.hover\:bg-brand-cyan:hover {
-		background-color: hsl(var(--brand-cyan));
-	}
-	.hover\:bg-brand-indigo:hover {
-		background-color: hsl(var(--brand-indigo));
-	}
-
-	.hover\:text-brand-blue:hover {
-		color: hsl(var(--brand-blue));
-	}
-	.hover\:text-brand-purple:hover {
-		color: hsl(var(--brand-purple));
-	}
-	.hover\:text-brand-cyan:hover {
-		color: hsl(var(--brand-cyan));
-	}
-	.hover\:text-brand-indigo:hover {
-		color: hsl(var(--brand-indigo));
-	}
-
-	.hover\:shadow-brand-blue:hover {
-		box-shadow: var(--brand-shadow-blue);
-	}
-	.hover\:shadow-brand-purple:hover {
-		box-shadow: var(--brand-shadow-purple);
-	}
-	.hover\:shadow-brand-cyan:hover {
-		box-shadow: var(--brand-shadow-cyan);
-	}
-	.hover\:shadow-brand-indigo:hover {
-		box-shadow: var(--brand-shadow-indigo);
+	.hover\:bg-accent:hover {
+		background-color: hsl(var(--accent));
 	}
 }
 
 @layer base {
 	* {
-		@apply border-border dark;
+		@apply border-[var(--border)];
 	}
 	body {
-		@apply bg-background text-foreground w-full h-full;
+		@apply w-full h-full;
+		background-color: hsl(var(--bg));
+		color: hsl(var(--text));
 		font-family: var(--font-switzer), system-ui, sans-serif;
 	}
 
@@ -225,23 +85,12 @@
 	}
 }
 
-@layer base {
-	* {
-		@apply border-border;
-	}
-	body {
-		@apply bg-background text-foreground;
-	}
-}
-
 ::-webkit-scrollbar {
 	width: 4px;
 }
-
 ::-webkit-scrollbar-thumb {
 	@apply bg-gray-700 rounded-full;
 }
-
 ::-webkit-scrollbar-track {
 	background: transparent;
 }

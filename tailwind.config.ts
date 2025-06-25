@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
 	darkMode: ["class"],
@@ -11,26 +12,40 @@ export default {
 		"bg-purple-500",
 		"bg-blue-500",
 		"bg-orange-500",
+		"bg-red-500",
 		"bg-green-500",
 		"bg-pink-500",
 		"bg-teal-500",
 		"bg-amber-500",
 		"bg-cyan-500",
 		"bg-yellow-500",
-		"bg-red-500",
-		// Brand color safelist
+
 		"bg-brand-blue",
 		"bg-brand-purple",
-		"bg-brand-cyan",
 		"bg-brand-indigo",
 		"text-brand-blue",
 		"text-brand-purple",
-		"text-brand-cyan",
 		"text-brand-indigo",
 		"border-brand-blue",
 		"border-brand-purple",
-		"border-brand-cyan",
 		"border-brand-indigo",
+		"bg-brand-purple-700",
+		"hover:bg-brand-blue/10",
+		"hover:bg-brand-purple/10",
+		"focus:bg-brand-blue/20",
+		"focus:bg-brand-purple/20",
+		"hover:text-brand-blue",
+		"hover:text-brand-purple",
+		"focus:border-brand-blue",
+		"focus:border-brand-purple",
+		"hover:border-brand-blue",
+		"hover:border-brand-purple",
+		"shadow-brand-blue",
+		"shadow-brand-purple",
+		"shadow-brand-indigo",
+		"hover:shadow-brand-blue",
+		"hover:shadow-brand-purple",
+		"hover:shadow-brand-indigo",
 	],
 	theme: {
 		extend: {
@@ -77,11 +92,11 @@ export default {
 				input: "hsl(var(--input))",
 				ring: "hsl(var(--ring))",
 				chart: {
-					"1": "hsl(var(--chart-1))",
-					"2": "hsl(var(--chart-2))",
-					"3": "hsl(var(--chart-3))",
-					"4": "hsl(var(--chart-4))",
-					"5": "hsl(var(--chart-5))",
+					1: "hsl(var(--chart-1))",
+					2: "hsl(var(--chart-2))",
+					3: "hsl(var(--chart-3))",
+					4: "hsl(var(--chart-4))",
+					5: "hsl(var(--chart-5))",
 				},
 				sidebar: {
 					DEFAULT: "var(--sidebar-background)",
@@ -95,60 +110,10 @@ export default {
 					border: "hsl(var(--sidebar-border))",
 					ring: "hsl(var(--sidebar-ring))",
 				},
-				// Skynet.io Brand Colors
 				brand: {
-					blue: {
-						50: "hsl(var(--brand-blue-50))",
-						100: "hsl(var(--brand-blue-100))",
-						200: "hsl(var(--brand-blue-200))",
-						300: "hsl(var(--brand-blue-300))",
-						400: "hsl(var(--brand-blue-400))",
-						500: "hsl(var(--brand-blue-500))", // #0ea5e9
-						600: "hsl(var(--brand-blue-600))",
-						700: "hsl(var(--brand-blue-700))",
-						800: "hsl(var(--brand-blue-800))",
-						900: "hsl(var(--brand-blue-900))",
-						DEFAULT: "hsl(var(--brand-blue))",
-					},
-					purple: {
-						50: "hsl(var(--brand-purple-50))",
-						100: "hsl(var(--brand-purple-100))",
-						200: "hsl(var(--brand-purple-200))",
-						300: "hsl(var(--brand-purple-300))",
-						400: "hsl(var(--brand-purple-400))",
-						500: "hsl(var(--brand-purple-500))", // #a855f7
-						600: "hsl(var(--brand-purple-600))",
-						700: "hsl(var(--brand-purple-700))",
-						800: "hsl(var(--brand-purple-800))",
-						900: "hsl(var(--brand-purple-900))",
-						DEFAULT: "hsl(var(--brand-purple))",
-					},
-					cyan: {
-						50: "hsl(var(--brand-cyan-50))",
-						100: "hsl(var(--brand-cyan-100))",
-						200: "hsl(var(--brand-cyan-200))",
-						300: "hsl(var(--brand-cyan-300))",
-						400: "hsl(var(--brand-cyan-400))", // #22d3ee
-						500: "hsl(var(--brand-cyan-500))",
-						600: "hsl(var(--brand-cyan-600))",
-						700: "hsl(var(--brand-cyan-700))",
-						800: "hsl(var(--brand-cyan-800))",
-						900: "hsl(var(--brand-cyan-900))",
-						DEFAULT: "hsl(var(--brand-cyan))",
-					},
-					indigo: {
-						50: "hsl(var(--brand-indigo-50))",
-						100: "hsl(var(--brand-indigo-100))",
-						200: "hsl(var(--brand-indigo-200))",
-						300: "hsl(var(--brand-indigo-300))",
-						400: "hsl(var(--brand-indigo-400))",
-						500: "hsl(var(--brand-indigo-500))", // #6366f1
-						600: "hsl(var(--brand-indigo-600))",
-						700: "hsl(var(--brand-indigo-700))",
-						800: "hsl(var(--brand-indigo-800))",
-						900: "hsl(var(--brand-indigo-900))",
-						DEFAULT: "hsl(var(--brand-indigo))",
-					},
+					blue: createBrandColor("--brand-blue"),
+					purple: createBrandColor("--brand-purple"),
+					indigo: createBrandColor("--brand-indigo"),
 				},
 			},
 			borderRadius: {
@@ -156,18 +121,28 @@ export default {
 				md: "calc(var(--radius) - 2px)",
 				sm: "calc(var(--radius) - 4px)",
 			},
-			backgroundImage: {
-				"brand-gradient": "var(--brand-gradient-primary)",
-				"brand-gradient-secondary": "var(--brand-gradient-secondary)",
-				"brand-gradient-hero": "var(--brand-gradient-hero)",
-			},
 			boxShadow: {
 				"brand-blue": "var(--brand-shadow-blue)",
 				"brand-purple": "var(--brand-shadow-purple)",
-				"brand-cyan": "var(--brand-shadow-cyan)",
 				"brand-indigo": "var(--brand-shadow-indigo)",
 			},
 		},
 	},
-	plugins: [require("tailwindcss-animate")],
+	plugins: [tailwindcssAnimate],
 } satisfies Config;
+
+function createBrandColor(varName: string) {
+	return {
+		50: `hsl(${varName}-50)`,
+		100: `hsl(${varName}-100)`,
+		200: `hsl(${varName}-200)`,
+		300: `hsl(${varName}-300)`,
+		400: `hsl(${varName}-400)`,
+		500: `hsl(${varName}-500)`,
+		600: `hsl(${varName}-600)`,
+		700: `hsl(${varName}-700)`,
+		800: `hsl(${varName}-800)`,
+		900: `hsl(${varName}-900)`,
+		DEFAULT: `hsl(${varName})`,
+	};
+}

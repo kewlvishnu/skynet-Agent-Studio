@@ -13,10 +13,10 @@ import { blocks } from "@/utils/constants/blocks";
 
 export default function AppSidebar() {
 	return (
-		<Sidebar className="w-60 border-r border-gray-800 absolute top-1 left-0 h-full z-20 mt-0.5">
+		<Sidebar className="w-60 border-r border-gray-800 absolute top-1 left-0 h-full mt-0.5 bg-background z-20">
 			<SidebarHeader className="h-14 ">
 				<div className="flex items-center px-2.5">
-					<Search className="size-4 absolute left-8 text-gray-400" />
+					<Search className="size-4 absolute left-8 text-muted-foreground" />
 					<Input
 						placeholder="Search..."
 						className="w-full bg-transparent relative pl-10 h-10"
@@ -83,8 +83,8 @@ export default function AppSidebar() {
 					</div>
 				</Tabs>
 			</SidebarContent>
-			<SidebarFooter className="h-16 border-t border-gray-800">
-				<SidebarTrigger className="ml-auto size-8" />
+			<SidebarFooter className="h-16 border-t border-gray-800 z-50 bg-background">
+				<SidebarTrigger className="ml-auto size-8 z-50" />
 			</SidebarFooter>
 		</Sidebar>
 	);

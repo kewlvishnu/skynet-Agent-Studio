@@ -1,5 +1,9 @@
 "use client";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import {
+	SidebarProvider,
+	SidebarTrigger,
+	useSidebar,
+} from "@/components/ui/sidebar";
 import {
 	ReactFlow,
 	Background,
@@ -19,6 +23,22 @@ import { nodeTypes } from "@/components/nodes";
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
+
+// Create a component that uses the sidebar context
+function SidebarContent() {
+	const { open } = useSidebar();
+
+	return (
+		<>
+			<AppSidebar />
+			<SidebarTrigger
+				className={`absolute bottom-5 left-3 z-10 transition-all duration-200 ${
+					open ? "opacity-0 pointer-events-none" : "opacity-100"
+				}`}
+			/>
+		</>
+	);
+}
 
 export default function Home() {
 	const [nodes, setNodes] = useState<Node[]>([
@@ -178,10 +198,7 @@ export default function Home() {
 	return (
 		<div className="w-full max-h-[calc(100svh-4rem)] relative flex overflow-hidden">
 			<SidebarProvider className="h-full w-fit">
-				<>
-					<AppSidebar />
-					<SidebarTrigger className="absolute bottom-5 left-3 z-10" />
-				</>
+				<SidebarContent />
 			</SidebarProvider>
 
 			<Button

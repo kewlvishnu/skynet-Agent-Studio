@@ -25,13 +25,13 @@ interface AgentNodeProps {
 export default function AgentNode({ id, data }: AgentNodeProps) {
 	return (
 		<div className="group relative w-86">
-			<div className="w-80 bg-gray-950 border border-gray-700 rounded-md py-4 flex flex-col gap-2">
-				<div className="flex items-center justify-between px-4 pb-3 border-b border-gray-700">
+			<div className="w-80 bg-theme border border-border rounded-lg py-4 flex flex-col gap-2 shadow-lg hover:shadow-brand-purple transition-all duration-200">
+				<div className="flex items-center justify-between px-4 pb-3 border-b border-border">
 					<div className="flex items-center gap-3">
-						<div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
-							<Bot className="w-5 h-5" />
+						<div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-brand-purple">
+							<Bot className="w-5 h-5 text-white" />
 						</div>
-						<h1 className="text-lg font-semibold">
+						<h1 className="text-lg font-semibold text-foreground">
 							{data.label || "Agent 1"}
 						</h1>
 					</div>
@@ -39,21 +39,21 @@ export default function AgentNode({ id, data }: AgentNodeProps) {
 						<Button
 							variant="ghost"
 							size="icon"
-							className="text-slate-400 hover:text-white"
+							className="text-muted-foreground hover:text-brand-purple hover:bg-brand-purple/10"
 						>
 							<Code className="w-4 h-4" />
 						</Button>
 						<Button
 							variant="ghost"
 							size="icon"
-							className="text-slate-400 hover:text-white"
+							className="text-muted-foreground hover:text-brand-purple hover:bg-brand-purple/10"
 						>
 							<Copy className="w-4 h-4" />
 						</Button>
 						<Button
 							variant="ghost"
 							size="icon"
-							className="text-slate-400 hover:text-white"
+							className="text-muted-foreground hover:text-brand-purple hover:bg-brand-purple/10"
 						>
 							<Maximize2 className="w-4 h-4" />
 						</Button>
@@ -62,22 +62,22 @@ export default function AgentNode({ id, data }: AgentNodeProps) {
 
 				<div className="px-4 space-y-3">
 					<div className="space-y-1">
-						<Label className="text-sm font-medium">
+						<Label className="text-sm font-medium text-foreground">
 							System Prompt
 						</Label>
 						<Textarea
 							placeholder="Enter system prompt..."
-							className="min-h-[100px] bg-transparent border border-gray-700 text-gray-300 placeholder:text-gray-500"
+							className="min-h-[100px] bg-background/50 border border-border text-foreground placeholder:text-muted-foreground focus:border-brand-purple"
 						/>
 					</div>
 
 					<div className="space-y-1">
-						<Label className="text-sm font-medium">
+						<Label className="text-sm font-medium text-foreground">
 							User Prompt
 						</Label>
 						<Textarea
 							placeholder="Enter context or user message..."
-							className="min-h-[100px] bg-transparent border border-gray-700 text-gray-300 placeholder:text-gray-500"
+							className="min-h-[100px] bg-background/50 border border-border text-foreground placeholder:text-muted-foreground focus:border-brand-purple"
 						/>
 					</div>
 
@@ -85,21 +85,22 @@ export default function AgentNode({ id, data }: AgentNodeProps) {
 						<div className="space-y-1">
 							<Label
 								htmlFor="model"
-								className="text-sm font-medium"
+								className="text-sm font-medium text-foreground"
 							>
-								Model <span className="text-red-500">*</span>
+								Model{" "}
+								<span className="text-destructive">*</span>
 							</Label>
 							<Select defaultValue="gpt-4o">
-								<SelectTrigger className="bg-transparent border border-gray-700 text-white">
+								<SelectTrigger className="bg-background/50 border border-border text-foreground focus:border-brand-purple">
 									<SelectValue placeholder="Select Model" />
 								</SelectTrigger>
-								<SelectContent className="bg-gray-950 border border-gray-700 rounded-md">
+								<SelectContent className="bg-card border border-border">
 									{["gpt-4o", "gpt-4", "gpt-3.5-turbo"].map(
 										(model) => (
 											<SelectItem
 												key={model}
 												value={model}
-												className="text-white hover:bg-gray-800"
+												className="text-foreground hover:bg-brand-purple/10 focus:bg-brand-purple/20"
 											>
 												{model}
 											</SelectItem>
@@ -110,7 +111,7 @@ export default function AgentNode({ id, data }: AgentNodeProps) {
 						</div>
 
 						<div className="space-y-1">
-							<Label className="text-sm font-medium">
+							<Label className="text-sm font-medium text-foreground">
 								Temperature
 							</Label>
 							<div className="pt-2">
@@ -121,7 +122,7 @@ export default function AgentNode({ id, data }: AgentNodeProps) {
 									className="w-full bg-gray-600 rounded-full focus-visible:ring-0 focus-visible:ring-offset-0"
 									defaultValue={[0.5]}
 								/>
-								<div className="text-right text-sm text-gray-400 mt-1">
+								<div className="text-right text-sm text-muted-foreground mt-1">
 									0.5
 								</div>
 							</div>
@@ -129,10 +130,12 @@ export default function AgentNode({ id, data }: AgentNodeProps) {
 					</div>
 
 					<div className="space-y-1">
-						<Label className="text-sm font-medium">Tools</Label>
+						<Label className="text-sm font-medium text-foreground">
+							Tools
+						</Label>
 						<Button
 							variant="outline"
-							className="w-full h-12 text-gray-400 hover:text-white bg-transparent hover:bg-transparent"
+							className="w-full h-12 text-muted-foreground hover:text-foreground bg-background/50 hover:bg-brand-purple/10 border-border hover:border-brand-purple"
 						>
 							<Plus className="w-4 h-4 mr-2" />
 							Add Tool
@@ -142,7 +145,7 @@ export default function AgentNode({ id, data }: AgentNodeProps) {
 					<div className="space-y-1">
 						<Label
 							htmlFor="response-format"
-							className="text-sm font-medium"
+							className="text-sm font-medium text-foreground"
 						>
 							Response Format
 						</Label>
@@ -150,12 +153,12 @@ export default function AgentNode({ id, data }: AgentNodeProps) {
 							<Textarea
 								id="response-format"
 								placeholder="Enter JSON schema..."
-								className="min-h-[100px] bg-transparent border border-gray-700 text-gray-300 placeholder:text-gray-500"
+								className="min-h-[100px] bg-background/50 border border-border text-foreground placeholder:text-muted-foreground focus:border-brand-purple font-mono"
 							/>
 							<Button
 								variant="ghost"
 								size="icon"
-								className="absolute top-2 right-2 text-slate-400 hover:text-white"
+								className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
 							>
 								<Code className="w-4 h-4" />
 							</Button>
@@ -165,12 +168,12 @@ export default function AgentNode({ id, data }: AgentNodeProps) {
 				<Handle
 					type="target"
 					position={Position.Left}
-					className="w-3 h-3 bg-blue-400"
+					className="w-3 h-3 bg-brand-blue border-2 border-white"
 				/>
 				<Handle
 					type="source"
 					position={Position.Right}
-					className="w-3 h-3 bg-orange-400"
+					className="w-3 h-3 bg-brand-purple border-2 border-white"
 				/>
 			</div>
 			<div className="absolute top-0 -right-10">
@@ -178,7 +181,7 @@ export default function AgentNode({ id, data }: AgentNodeProps) {
 					variant="ghost"
 					size="icon"
 					onClick={() => data.onDelete?.(id)}
-					className="text-slate-400 hover:text-white"
+					className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
 				>
 					<Trash className="w-4 h-4" />
 				</Button>

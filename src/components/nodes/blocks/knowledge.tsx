@@ -26,13 +26,13 @@ export default function KnowledgeNode({ id, data }: KnowledgeNodeProps) {
 
 	return (
 		<div className="group relative w-86">
-			<div className="w-80 bg-gray-950 border border-gray-700 rounded-md py-4 flex flex-col gap-2">
-				<div className="flex items-center justify-between px-4 pb-3 border-b border-gray-700">
+			<div className="w-80 bg-theme border border-border rounded-lg py-4 flex flex-col gap-2 shadow-lg hover:shadow-brand-cyan transition-all duration-200">
+				<div className="flex items-center justify-between px-4 pb-3 border-b border-border">
 					<div className="flex items-center gap-3">
-						<div className="w-8 h-8 bg-cyan-600 rounded-lg flex items-center justify-center">
-							<Book className="w-5 h-5" />
+						<div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-brand-cyan">
+							<Book className="w-5 h-5 text-white" />
 						</div>
-						<h1 className="text-lg font-semibold text-white">
+						<h1 className="text-lg font-semibold text-foreground">
 							{data.label || "Knowledge 1"}
 						</h1>
 					</div>
@@ -40,14 +40,14 @@ export default function KnowledgeNode({ id, data }: KnowledgeNodeProps) {
 						<Button
 							variant="ghost"
 							size="icon"
-							className="text-slate-400 hover:text-white"
+							className="text-muted-foreground hover:text-brand-cyan hover:bg-brand-cyan/10"
 						>
 							<Copy className="w-4 h-4" />
 						</Button>
 						<Button
 							variant="ghost"
 							size="icon"
-							className="text-slate-400 hover:text-white"
+							className="text-muted-foreground hover:text-brand-cyan hover:bg-brand-cyan/10"
 						>
 							<Maximize2 className="w-4 h-4" />
 						</Button>
@@ -56,20 +56,21 @@ export default function KnowledgeNode({ id, data }: KnowledgeNodeProps) {
 
 				<div className="px-4 space-y-3">
 					<div className="space-y-1">
-						<Label className="text-sm font-medium text-white">
-							Operation <span className="text-red-500">*</span>
+						<Label className="text-sm font-medium text-foreground">
+							Operation{" "}
+							<span className="text-destructive">*</span>
 						</Label>
 						<Select defaultValue="search">
-							<SelectTrigger className="bg-transparent border border-gray-700 text-white">
+							<SelectTrigger className="bg-background/50 border border-border text-foreground focus:border-brand-cyan">
 								<SelectValue placeholder="Select Operation" />
 							</SelectTrigger>
-							<SelectContent className="bg-gray-950 border border-gray-700 rounded-md">
+							<SelectContent className="bg-card border border-border">
 								{["Search", "Index", "Update", "Delete"].map(
 									(operation) => (
 										<SelectItem
 											key={operation.toLowerCase()}
 											value={operation.toLowerCase()}
-											className="text-white hover:bg-gray-800"
+											className="text-foreground hover:bg-brand-cyan/10 focus:bg-brand-cyan/20"
 										>
 											{operation}
 										</SelectItem>
@@ -80,17 +81,17 @@ export default function KnowledgeNode({ id, data }: KnowledgeNodeProps) {
 					</div>
 
 					<div className="space-y-1">
-						<Label className="text-sm font-medium text-white">
+						<Label className="text-sm font-medium text-foreground">
 							Knowledge Bases
 						</Label>
 						<Select>
-							<SelectTrigger className="bg-transparent border border-gray-700 text-white">
+							<SelectTrigger className="bg-background/50 border border-border text-foreground focus:border-brand-cyan">
 								<div className="flex items-center gap-2">
-									<Search className="w-4 h-4 text-gray-400" />
+									<Search className="w-4 h-4 text-muted-foreground" />
 									<SelectValue placeholder="Select knowledge bases" />
 								</div>
 							</SelectTrigger>
-							<SelectContent className="bg-gray-950 border border-gray-700 rounded-md">
+							<SelectContent className="bg-card border border-border">
 								{[
 									"General Knowledge",
 									"Technical Docs",
@@ -104,7 +105,7 @@ export default function KnowledgeNode({ id, data }: KnowledgeNodeProps) {
 										value={base
 											.toLowerCase()
 											.replace(" ", "-")}
-										className="text-white hover:bg-gray-800"
+										className="text-foreground hover:bg-brand-cyan/10 focus:bg-brand-cyan/20"
 									>
 										{base}
 									</SelectItem>
@@ -114,26 +115,26 @@ export default function KnowledgeNode({ id, data }: KnowledgeNodeProps) {
 					</div>
 
 					<div className="space-y-1">
-						<Label className="text-sm font-medium text-white">
+						<Label className="text-sm font-medium text-foreground">
 							Search Query
 						</Label>
 						<Input
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
 							placeholder="Enter your search query"
-							className="bg-transparent border border-gray-700 text-gray-300 placeholder:text-gray-500"
+							className="bg-background/50 border border-border text-foreground placeholder:text-muted-foreground focus:border-brand-cyan"
 						/>
 					</div>
 
 					<div className="space-y-1">
-						<Label className="text-sm font-medium text-white">
+						<Label className="text-sm font-medium text-foreground">
 							Number of Results
 						</Label>
 						<Input
 							value={numberOfResults}
 							onChange={(e) => setNumberOfResults(e.target.value)}
 							placeholder="Enter number of results (default 10)"
-							className="bg-transparent border border-gray-700 text-gray-300 placeholder:text-gray-500"
+							className="bg-background/50 border border-border text-foreground placeholder:text-muted-foreground focus:border-brand-cyan"
 						/>
 					</div>
 				</div>
@@ -141,12 +142,12 @@ export default function KnowledgeNode({ id, data }: KnowledgeNodeProps) {
 				<Handle
 					type="target"
 					position={Position.Left}
-					className="w-3 h-3 bg-blue-400"
+					className="w-3 h-3 bg-brand-blue border-2 border-white"
 				/>
 				<Handle
 					type="source"
 					position={Position.Right}
-					className="w-3 h-3 bg-orange-400"
+					className="w-3 h-3 bg-brand-cyan border-2 border-white"
 				/>
 			</div>
 
@@ -155,7 +156,7 @@ export default function KnowledgeNode({ id, data }: KnowledgeNodeProps) {
 					variant="ghost"
 					size="icon"
 					onClick={() => data.onDelete?.(id)}
-					className="text-slate-400 hover:text-white"
+					className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
 				>
 					<Trash className="w-4 h-4" />
 				</Button>
