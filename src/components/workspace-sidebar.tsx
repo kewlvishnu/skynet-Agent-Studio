@@ -67,10 +67,10 @@ export default function AppSidebar() {
 												<Icon className="size-5 text-white" />
 											</div>
 											<div className="flex flex-col">
-												<p className="font-medium text-white">
+												<p className="font-medium text-primary-foreground">
 													{block.title}
 												</p>
-												<p className="text-sm text-gray-400">
+												<p className="text-sm text-muted-foreground">
 													{block.description}
 												</p>
 											</div>
