@@ -69,7 +69,7 @@ export function AppSidebar() {
 							{workflows.map((workflow, index) => (
 								<div
 									key={index}
-									className="flex items-center gap-2.5 w-full rounded-md p-2 px-3 bg-gray-500/20"
+									className="flex items-center gap-2.5 w-full rounded-none p-2 px-3 bg-gray-500/20"
 								>
 									<div
 										className={`size-4 ${workflow.color} rounded`}

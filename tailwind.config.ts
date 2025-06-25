@@ -92,11 +92,11 @@ export default {
 				input: "hsl(var(--input))",
 				ring: "hsl(var(--ring))",
 				chart: {
-					1: "hsl(var(--chart-1))",
-					2: "hsl(var(--chart-2))",
-					3: "hsl(var(--chart-3))",
-					4: "hsl(var(--chart-4))",
-					5: "hsl(var(--chart-5))",
+					"1": "hsl(var(--chart-1))",
+					"2": "hsl(var(--chart-2))",
+					"3": "hsl(var(--chart-3))",
+					"4": "hsl(var(--chart-4))",
+					"5": "hsl(var(--chart-5))",
 				},
 				sidebar: {
 					DEFAULT: "var(--sidebar-background)",
@@ -110,39 +110,13 @@ export default {
 					border: "hsl(var(--sidebar-border))",
 					ring: "hsl(var(--sidebar-ring))",
 				},
-				brand: {
-					blue: createBrandColor("--brand-blue"),
-					purple: createBrandColor("--brand-purple"),
-					indigo: createBrandColor("--brand-indigo"),
-				},
 			},
 			borderRadius: {
 				lg: "var(--radius)",
 				md: "calc(var(--radius) - 2px)",
 				sm: "calc(var(--radius) - 4px)",
 			},
-			boxShadow: {
-				"brand-blue": "var(--brand-shadow-blue)",
-				"brand-purple": "var(--brand-shadow-purple)",
-				"brand-indigo": "var(--brand-shadow-indigo)",
-			},
 		},
 	},
 	plugins: [tailwindcssAnimate],
 } satisfies Config;
-
-function createBrandColor(varName: string) {
-	return {
-		50: `hsl(${varName}-50)`,
-		100: `hsl(${varName}-100)`,
-		200: `hsl(${varName}-200)`,
-		300: `hsl(${varName}-300)`,
-		400: `hsl(${varName}-400)`,
-		500: `hsl(${varName}-500)`,
-		600: `hsl(${varName}-600)`,
-		700: `hsl(${varName}-700)`,
-		800: `hsl(${varName}-800)`,
-		900: `hsl(${varName}-900)`,
-		DEFAULT: `hsl(${varName})`,
-	};
-}

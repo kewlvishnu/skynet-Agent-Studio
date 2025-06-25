@@ -6,7 +6,7 @@ import {
 	SidebarFooter,
 	SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Input } from "../ui/input";
+import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { blocks } from "@/utils/constants/blocks";
@@ -52,7 +52,7 @@ export default function AppSidebar() {
 									return (
 										<div
 											key={block.type}
-											className="w-full h-full border border-gray-700 rounded-lg p-3 flex items-center gap-2"
+											className="w-full h-full border border-gray-700 p-3 flex items-center gap-2"
 											draggable
 											onDragStart={(e) => {
 												e.dataTransfer.setData(
@@ -64,13 +64,13 @@ export default function AppSidebar() {
 											<div
 												className={`${block.color} size-8 rounded-sm flex items-center justify-center`}
 											>
-												<Icon className="size-5 text-white" />
+												<Icon className="size-5 text-primary-foreground" />
 											</div>
 											<div className="flex flex-col">
-												<p className="font-medium text-primary-foreground">
+												<h6 className="font-medium text-sm">
 													{block.title}
-												</p>
-												<p className="text-sm text-muted-foreground">
+												</h6>
+												<p className="text-xs text-muted-foreground">
 													{block.description}
 												</p>
 											</div>
