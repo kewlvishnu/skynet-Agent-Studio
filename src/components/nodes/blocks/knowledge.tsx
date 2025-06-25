@@ -9,8 +9,9 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Handle, Position } from "@xyflow/react";
+import { Position } from "@xyflow/react";
 import { Book, Copy, Maximize2, Trash, Search } from "lucide-react";
+import { CustomHandle } from "@/components/handle/custom-handle";
 
 interface KnowledgeNodeProps {
 	id: string;
@@ -139,16 +140,8 @@ export default function KnowledgeNode({ id, data }: KnowledgeNodeProps) {
 					</div>
 				</div>
 
-				<Handle
-					type="target"
-					position={Position.Left}
-					className="w-3 h-3 bg-brand-blue border-2 border-white"
-				/>
-				<Handle
-					type="source"
-					position={Position.Right}
-					className="w-3 h-3 bg-brand-cyan border-2 border-white"
-				/>
+				<CustomHandle type="target" position={Position.Left} />
+				<CustomHandle type="source" position={Position.Right} />
 			</div>
 
 			<div className="absolute top-0 -right-10">

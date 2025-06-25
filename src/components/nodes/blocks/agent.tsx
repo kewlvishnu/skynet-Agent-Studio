@@ -1,5 +1,6 @@
 "use client";
 
+import { CustomHandle } from "@/components/handle/custom-handle";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -11,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
-import { Handle, Position } from "@xyflow/react";
+import { Position } from "@xyflow/react";
 import { Bot, Code, Copy, Maximize2, Plus, Trash } from "lucide-react";
 
 interface AgentNodeProps {
@@ -165,16 +166,8 @@ export default function AgentNode({ id, data }: AgentNodeProps) {
 						</div>
 					</div>
 				</div>
-				<Handle
-					type="target"
-					position={Position.Left}
-					className="w-3 h-3 bg-brand-blue border-2 border-white"
-				/>
-				<Handle
-					type="source"
-					position={Position.Right}
-					className="w-3 h-3 bg-brand-purple border-2 border-white"
-				/>
+				<CustomHandle type="target" position={Position.Left} />
+				<CustomHandle type="source" position={Position.Right} />
 			</div>
 			<div className="absolute top-0 -right-10">
 				<Button

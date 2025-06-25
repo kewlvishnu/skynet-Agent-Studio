@@ -8,8 +8,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Handle, Position } from "@xyflow/react";
+import { Position } from "@xyflow/react";
 import { Layers, Copy, Maximize2, Trash, Info } from "lucide-react";
+import { CustomHandle } from "@/components/handle/custom-handle";
 
 interface WorkflowNodeProps {
 	id: string;
@@ -117,16 +118,8 @@ export default function WorkflowNode({ id, data }: WorkflowNodeProps) {
 					</div>
 				</div>
 
-				<Handle
-					type="target"
-					position={Position.Left}
-					className="w-3 h-3 bg-brand-blue border-2 border-white"
-				/>
-				<Handle
-					type="source"
-					position={Position.Right}
-					className="w-3 h-3 bg-brand-amber border-2 border-white"
-				/>
+				<CustomHandle type="target" position={Position.Left} />
+				<CustomHandle type="source" position={Position.Right} />
 			</div>
 
 			<div className="absolute top-0 -right-10">

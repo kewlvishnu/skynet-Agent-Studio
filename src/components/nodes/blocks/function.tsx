@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Handle, Position } from "@xyflow/react";
+import { Position } from "@xyflow/react";
 import { Code, Copy, Maximize2, Trash, Edit } from "lucide-react";
+import { CustomHandle } from "@/components/handle/custom-handle";
 
 interface FunctionNodeProps {
 	id: string;
@@ -87,16 +88,8 @@ export default function FunctionNode({ id, data }: FunctionNodeProps) {
 					</div>
 				</div>
 
-				<Handle
-					type="target"
-					position={Position.Left}
-					className="w-3 h-3 bg-brand-blue border-2 border-white"
-				/>
-				<Handle
-					type="source"
-					position={Position.Right}
-					className="w-3 h-3 bg-brand-purple border-2 border-white"
-				/>
+				<CustomHandle type="target" position={Position.Left} />
+				<CustomHandle type="source" position={Position.Right} />
 			</div>
 
 			<div className="absolute top-0 -right-10">

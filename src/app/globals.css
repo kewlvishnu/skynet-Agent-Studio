@@ -24,7 +24,6 @@
 		--border: 230 10% 18%; /* #2A2C33 */
 		--muted: 230 5% 45%; /* #6E7078 */
 	}
-
 }
 
 @layer utilities {
@@ -93,4 +92,13 @@
 }
 ::-webkit-scrollbar-track {
 	background: transparent;
+}
+
+@keyframes dashFlow {
+	0% {
+		stroke-dashoffset: 16;
+	}
+	100% {
+		stroke-dashoffset: 0;
+	}
 }

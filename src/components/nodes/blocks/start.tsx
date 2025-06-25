@@ -9,7 +9,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Handle, Position } from "@xyflow/react";
+import { Position } from "@xyflow/react";
+import { CustomHandle } from "@/components/handle/custom-handle";
 
 export default function StartNode() {
 	const [trigger, setTrigger] = useState<"manual" | "webhook" | "schedule">(
@@ -130,11 +131,7 @@ export default function StartNode() {
 					</div>
 				)}
 			</div>
-			<Handle
-				type="source"
-				position={Position.Right}
-				className="w-3 h-3 bg-brand-blue border-2 border-white"
-			/>
+			<CustomHandle type="source" position={Position.Right} />
 		</div>
 	);
 }

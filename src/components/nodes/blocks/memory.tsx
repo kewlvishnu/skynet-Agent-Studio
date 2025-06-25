@@ -10,8 +10,9 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Handle, Position } from "@xyflow/react";
+import { Position } from "@xyflow/react";
 import { Database, Copy, Maximize2, Trash } from "lucide-react";
+import { CustomHandle } from "@/components/handle/custom-handle";
 
 interface MemoryNodeProps {
 	id: string;
@@ -135,16 +136,8 @@ export default function MemoryNode({ id, data }: MemoryNodeProps) {
 					</div>
 				</div>
 
-				<Handle
-					type="target"
-					position={Position.Left}
-					className="w-3 h-3 bg-brand-blue border-2 border-white"
-				/>
-				<Handle
-					type="source"
-					position={Position.Right}
-					className="w-3 h-3 bg-brand-pink border-2 border-white"
-				/>
+				<CustomHandle type="target" position={Position.Left} />
+				<CustomHandle type="source" position={Position.Right} />
 			</div>
 
 			<div className="absolute top-0 -right-10">

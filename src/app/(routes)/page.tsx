@@ -23,8 +23,8 @@ import { nodeTypes } from "@/components/nodes";
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
+import CustomEdge from "@/components/edge/custom-edge";
 
-// Create a component that uses the sidebar context
 function SidebarContent() {
 	const { open } = useSidebar();
 
@@ -63,7 +63,21 @@ export default function Home() {
 			},
 		},
 	]);
+
 	const [edges, setEdges] = useState<Edge[]>([]);
+	const [isProcessing, setIsProcessing] = useState(true);
+
+	const updateEdgesProcessing = useCallback((processing: boolean) => {
+		setEdges((currentEdges) =>
+			currentEdges.map((edge) => ({
+				...edge,
+				data: {
+					...edge.data,
+					processing: processing,
+				},
+			}))
+		);
+	}, []);
 
 	const onNodesChange: OnNodesChange = useCallback(
 		(changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -76,8 +90,18 @@ export default function Home() {
 	);
 
 	const onConnect: OnConnect = useCallback(
-		(connection) => setEdges((eds) => addEdge(connection, eds)),
-		[setEdges]
+		(connection) => {
+			const newEdge = {
+				...connection,
+				type: "custom",
+				data: {
+					processing: isProcessing,
+				},
+			};
+			console.log("Creating new edge:", newEdge);
+			setEdges((eds) => addEdge(newEdge, eds));
+		},
+		[setEdges, isProcessing]
 	);
 
 	const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -195,24 +219,46 @@ export default function Home() {
 			});
 	};
 
+	const edgeTypes = {
+		custom: CustomEdge,
+	};
+
 	return (
 		<div className="w-full max-h-[calc(100svh-4rem)] relative flex overflow-hidden">
 			<SidebarProvider className="h-full w-fit">
 				<SidebarContent />
 			</SidebarProvider>
 
-			<Button
-				onClick={exportConnections}
-				className="absolute top-5 right-5 z-10 bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
-				size="sm"
-			>
-				<Copy className="w-4 h-4" />
-				Export JSON
-			</Button>
+			<div className="absolute top-5 right-5 z-10 flex items-center gap-2">
+				<Button
+					onClick={() => {
+						const newProcessingState = !isProcessing;
+						setIsProcessing(newProcessingState);
+						updateEdgesProcessing(newProcessingState);
+					}}
+					className={`${
+						isProcessing
+							? "bg-blue-600 hover:bg-blue-700"
+							: "bg-gray-600 hover:bg-gray-700"
+					} text-white flex items-center gap-2`}
+					size="sm"
+				>
+					{isProcessing ? "Processing: ON" : "Processing: OFF"}
+				</Button>
+				<Button
+					onClick={exportConnections}
+					className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+					size="sm"
+				>
+					<Copy className="w-4 h-4" />
+					Export JSON
+				</Button>
+			</div>
 
 			<div className="flex-1 overflow-auto mt-2">
 				<ReactFlow
 					nodeTypes={nodeTypes}
+					edgeTypes={edgeTypes}
 					onDragOver={onDragOver}
 					onDrop={onDrop}
 					onNodesChange={onNodesChange}

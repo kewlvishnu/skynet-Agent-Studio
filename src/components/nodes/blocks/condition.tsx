@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Handle, Position } from "@xyflow/react";
+import { Position } from "@xyflow/react";
 import {
 	GitBranch,
 	Copy,
@@ -11,6 +11,7 @@ import {
 	ChevronUp,
 	ChevronDown,
 } from "lucide-react";
+import { CustomHandle } from "@/components/handle/custom-handle";
 
 interface ConditionNodeProps {
 	id: string;
@@ -186,16 +187,8 @@ export default function ConditionNode({ id, data }: ConditionNodeProps) {
 					))}
 				</div>
 
-				<Handle
-					type="target"
-					position={Position.Left}
-					className="w-3 h-3 bg-brand-blue border-2 border-white"
-				/>
-				<Handle
-					type="source"
-					position={Position.Right}
-					className="w-3 h-3 bg-brand-indigo border-2 border-white"
-				/>
+				<CustomHandle type="target" position={Position.Left} />
+				<CustomHandle type="source" position={Position.Right} />
 			</div>
 
 			<div className="absolute top-0 -right-10">
