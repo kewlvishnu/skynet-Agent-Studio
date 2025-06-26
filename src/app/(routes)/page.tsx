@@ -134,12 +134,9 @@ function FlowCanvas() {
 		(e: React.DragEvent<HTMLDivElement>) => {
 			e.preventDefault();
 
-			const reactFlowBounds = e.currentTarget.getBoundingClientRect();
-
-			// Use ReactFlow's screenToFlowPosition for proper coordinate transformation
 			const position = screenToFlowPosition({
-				x: e.clientX - reactFlowBounds.left,
-				y: e.clientY - reactFlowBounds.top,
+				x: e.clientX,
+				y: e.clientY,
 			});
 
 			try {
