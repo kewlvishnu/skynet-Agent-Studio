@@ -1,7 +1,6 @@
 "use client";
 import { AppSidebar } from "@/components/sidebar/sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import WorkflowWrapper from "@/components/workflow-wrapper/wrapper";
 import React from "react";
 
 export default function layout({ children }: { children: React.ReactNode }) {
@@ -10,10 +9,7 @@ export default function layout({ children }: { children: React.ReactNode }) {
 			<div className="flex w-fit max-w-48">
 				<AppSidebar />
 			</div>
-
-			<div className="flex w-full relative">
-				<WorkflowWrapper>{children}</WorkflowWrapper>
-			</div>
+			<>{children}</>
 		</SidebarProvider>
 	);
 }

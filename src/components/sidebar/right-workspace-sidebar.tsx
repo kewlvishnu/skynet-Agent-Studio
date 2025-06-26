@@ -14,7 +14,7 @@ export default function RightWorkspaceSidebar() {
 	return (
 		<Sidebar
 			side="right"
-			className="w-60 border-r border-gray absolute top-1 right-0 h-full mt-0.5 bg-background z-20"
+			className="w-60 border-r border-gray absolute top-0 right-0 h-full mt-0.5 bg-background z-20"
 		>
 			<SidebarHeader className="h-14 ">
 				<div className="flex items-center px-2.5">

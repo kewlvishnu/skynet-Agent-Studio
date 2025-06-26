@@ -188,7 +188,7 @@ export default function WorkspaceSidebar() {
 
 	return (
 		<Sidebar
-			className="w-60 border-r border-gray absolute top-1 left-0 h-full mt-0.5 bg-background z-20"
+			className="w-60 border-r border-gray absolute top-0 left-0 h-full bg-background z-20"
 			collapsible="icon"
 		>
 			<SidebarHeader className="h-14 px-2.5">

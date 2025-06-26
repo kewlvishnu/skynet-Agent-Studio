@@ -239,7 +239,7 @@ function FlowCanvas() {
 	}, [nodes, edges]);
 
 	return (
-		<div className="flex-1 overflow-auto mt-2 relative">
+		<div className="flex-1 overflow-auto  relative">
 			<ReactFlow
 				nodeTypes={nodeTypes}
 				edgeTypes={edgeTypes}

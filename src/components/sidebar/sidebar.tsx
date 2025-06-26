@@ -50,14 +50,14 @@ export function AppSidebar() {
 						alt="logo"
 						width={2000}
 						height={2000}
-						className="w-10 h-8 hidden group-data-[collapsible=icon]:block"
+						className="w-10 h-8 hidden group-data-[collapsible=icon]:block dark:invert"
 					/>
 					<Image
 						src="/logo/full-logo-light.svg"
 						alt="logo"
 						width={2000}
 						height={2000}
-						className="w-10/12 ml-2 h-8 block group-data-[collapsible=icon]:hidden"
+						className="w-10/12 ml-2 h-8 block group-data-[collapsible=icon]:hidden dark:invert"
 					/>
 				</div>
 			</SidebarHeader>
