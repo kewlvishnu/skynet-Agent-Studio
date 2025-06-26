@@ -11,93 +11,278 @@ import { Loader2, Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { blocks } from "@/utils/constants/blocks";
 import { getSubnets } from "@/controllers/subnets/subnets.queries";
-import { useEffect, useState, useRef, useCallback } from "react";
-import { icons } from "@/utils/constants/icons";
+import { getAgents } from "@/controllers/agents/agents.queries";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 
+const ITEMS_PER_PAGE = 10;
 const navigationItems = [
-	{
-		name: "Blocks",
-		value: "blocks",
-	},
-	{
-		name: "Tools",
-		value: "tools",
-	},
-	{
-		name: "Agents",
-		value: "agents",
-	},
-];
+	{ name: "Blocks", value: "blocks" },
+	{ name: "Tools", value: "tools" },
+	{ name: "Agents", value: "agents" },
+] as const;
 
-export default function WorkspaceSidebar() {
-	const [tools, setTools] = useState<SubnetResponse>();
-	const [hasMore, setHasMore] = useState(true);
-	const [isLoading, setIsLoading] = useState(false);
-	const [currentPage, setCurrentPage] = useState(0);
 
-	const observerRef = useRef<IntersectionObserver>(null);
 
-	const lastToolRef = useCallback(
-		(node: HTMLDivElement) => {
-			if (isLoading) return;
-			if (observerRef.current) observerRef.current.disconnect();
+const useInfiniteScroll = (
+	fetchFunction: (page: number) => Promise<void>,
+	isLoading: boolean,
+	hasMore: boolean
+) => {
+	const observerRef = useRef<IntersectionObserver | null>(null);
 
-			observerRef.current = new IntersectionObserver((entries) => {
-				if (entries[0].isIntersecting && hasMore) {
-					setCurrentPage((prev) => prev + 1);
-				}
-			});
+	const lastElementRef = useCallback(
+		(node: HTMLDivElement | null) => {
+			if (isLoading || !node) return;
 
-			if (node) observerRef.current.observe(node);
+			observerRef.current?.disconnect();
+			observerRef.current = new IntersectionObserver(
+				(entries) => {
+					if (entries[0].isIntersecting && hasMore) {
+						fetchFunction(0);
+					}
+				},
+				{ threshold: 0.1 }
+			);
+			observerRef.current.observe(node);
 		},
-		[isLoading, hasMore]
+		[isLoading, hasMore, fetchFunction]
 	);
 
-	const fetchTools = async (page: number) => {
-		setIsLoading(true);
-		try {
-			const response = await getSubnets({
-				offset: page * 10,
-				limit: 10,
-			});
+	useEffect(() => {
+		return () => observerRef.current?.disconnect();
+	}, []);
 
-			if (page === 0) {
-				// First page - replace all data
-				setTools(response);
-			} else {
-				// Subsequent pages - append data
-				setTools((prev) => {
-					if (!prev) return response;
+	return lastElementRef;
+};
+
+const usePaginatedData = <T extends { data: any }>(
+	fetchFunction: (params: { offset: number; limit: number }) => Promise<T>,
+	getItemsArray: (data: T) => any[]
+) => {
+	const [data, setData] = useState<T | undefined>();
+	const [pagination, setPagination] = useState<PaginationState>({
+		currentPage: 0,
+		hasMore: true,
+		isLoading: false,
+	});
+
+	const fetchData = useCallback(
+		async (page: number) => {
+			setPagination((prev) => ({ ...prev, isLoading: true }));
+
+			try {
+				const response = await fetchFunction({
+					offset: page * ITEMS_PER_PAGE,
+					limit: ITEMS_PER_PAGE,
+				});
+
+				const items = getItemsArray(response);
+
+				setData((prevData) => {
+					if (page === 0 || !prevData) return response;
+
+					const prevItems = getItemsArray(prevData);
 					return {
 						...response,
 						data: {
 							...response.data,
-							subnets: [
-								...prev.data.subnets,
-								...response.data.subnets,
+							[Object.keys(response.data)[0]]: [
+								...prevItems,
+								...items,
 							],
 						},
-					};
+					} as T;
 				});
+
+				setPagination((prev) => ({
+					...prev,
+					hasMore: items.length === ITEMS_PER_PAGE,
+					isLoading: false,
+				}));
+			} catch (error) {
+				console.error("Error fetching data:", error);
+				setPagination((prev) => ({ ...prev, isLoading: false }));
 			}
+		},
+		[fetchFunction, getItemsArray]
+	);
 
-			setHasMore(response.data.subnets.length === 10);
-		} catch (error) {
-			console.error("Error fetching tools:", error);
+	const loadMore = useCallback(async () => {
+		if (!pagination.isLoading && pagination.hasMore) {
+			const nextPage = pagination.currentPage + 1;
+			setPagination((prev) => ({ ...prev, currentPage: nextPage }));
+			fetchData(nextPage);
 		}
-		setIsLoading(false);
-	};
+	}, [
+		fetchData,
+		pagination.currentPage,
+		pagination.isLoading,
+		pagination.hasMore,
+	]);
+
+	const reset = useCallback(() => {
+		setData(undefined);
+		setPagination({ currentPage: 0, hasMore: true, isLoading: false });
+		fetchData(0);
+	}, [fetchData]);
 
 	useEffect(() => {
-		fetchTools(currentPage);
-	}, [currentPage]);
+		fetchData(pagination.currentPage);
+	}, [pagination.currentPage]);
 
-	// Reset pagination when component mounts
+	return { data, ...pagination, loadMore, reset };
+};
+
+
+interface DraggableItemProps {
+	item: any;
+	title: string;
+	description: string;
+	icon?: React.ComponentType<{ className?: string }>;
+	color?: string;
+	isLast?: boolean;
+	lastElementRef?: (node: HTMLDivElement) => void;
+}
+
+const DraggableItem = ({
+	item,
+	title,
+	description,
+	icon:  Icon,
+	color,
+	isLast,
+	lastElementRef,
+}: DraggableItemProps) => {
+	const handleDragStart = useCallback(
+		(e: React.DragEvent) => {
+			e.dataTransfer.setData(
+				"application/reactflow",
+				JSON.stringify(item)
+			);
+		},
+		[item]
+	);
+
+	return (
+		<div
+			ref={isLast ? lastElementRef : undefined}
+			className="w-full h-fit border border-gray p-3 flex items-center gap-2 rounded-md bg-background hover:bg-accent/50 transition-colors cursor-grab active:cursor-grabbing"
+			draggable
+			onDragStart={handleDragStart}
+		>
+			{Icon && color && (
+				<div
+					className={`${color} size-8 rounded-sm flex items-center justify-center flex-shrink-0`}
+				>
+					<Icon className="size-5 text-primary-foreground" />
+				</div>
+			)}
+			<div className="flex flex-col min-w-0 flex-1">
+				<h6
+					className="font-medium text-sm capitalize truncate"
+					title={title}
+				>
+					{title}
+				</h6>
+				<p className="text-xs text-muted-foreground line-clamp-4 break-words">
+					{description}
+				</p>
+			</div>
+		</div>
+	);
+};
+
+export default function WorkspaceSidebar() {
+	const getSubnetsArray = useCallback(
+		(data: SubnetResponse) => data.data.subnets,
+		[]
+	);
+	const getAgentsArray = useCallback(
+		(data: AgentResponse) => data.data.agents,
+		[]
+	);
+
+	const {
+		data: tools,
+		isLoading: isLoadingTools,
+		hasMore: hasMoreTools,
+		loadMore: loadMoreTools,
+		reset: resetTools,
+	} = usePaginatedData(getSubnets, getSubnetsArray);
+
+	const {
+		data: agents,
+		isLoading: isLoadingAgents,
+		hasMore: hasMoreAgents,
+		loadMore: loadMoreAgents,
+		reset: resetAgents,
+	} = usePaginatedData(getAgents, getAgentsArray);
+
+	const lastToolRef = useInfiniteScroll(
+		loadMoreTools,
+		isLoadingTools,
+		hasMoreTools
+	);
+	const lastAgentRef = useInfiniteScroll(
+		loadMoreAgents,
+		isLoadingAgents,
+		hasMoreAgents
+	);
+
 	useEffect(() => {
-		setCurrentPage(0);
-		setTools(undefined);
-		setHasMore(true);
-	}, []);
+		resetTools();
+		resetAgents();
+	}, [resetTools, resetAgents]);
+
+	const renderedBlocks = useMemo(
+		() =>
+			blocks.map((block) => {
+				const Icon = block.icon;
+				return (
+					<DraggableItem
+						key={block.type}
+						item={block}
+						title={block.title}
+						description={block.description}
+						icon={Icon as React.ComponentType<{ className?: string }>}
+						color={block.color}
+					/>
+				);
+			}),
+		[blocks]
+	);
+
+	const renderedTools = useMemo(
+		() =>
+			tools?.data.subnets.map((tool, index) => (
+				<DraggableItem
+					key={`${tool.unique_id}-${index}`}
+					item={tool}
+					title={tool.subnet_name}
+					description={tool.description}
+					isLast={index === tools.data.subnets.length - 1}
+					lastElementRef={lastToolRef}
+				/>
+			)) || [],
+		[tools, lastToolRef]
+	);
+
+	const renderedAgents = useMemo(
+		() =>
+			agents?.data.agents.map((agent, index) => (
+				<DraggableItem
+					key={`${agent.id}-${index}`}
+					item={agent}
+					title={agent.name}
+					description={
+						agent.description || "No description available"
+					}
+					isLast={index === agents.data.agents.length - 1}
+					lastElementRef={lastAgentRef}
+				/>
+			)) || [],
+		[agents, lastAgentRef]
+	);
 
 	return (
 		<Sidebar
@@ -106,7 +291,7 @@ export default function WorkspaceSidebar() {
 		>
 			<SidebarHeader className="h-14 px-2.5">
 				<div className="flex items-center w-full px-2.5 group-data-[collapsible=icon]:hidden">
-					<Search className="size-4 absolute left-8 text-muted-foreground" />
+					<Search className="size-4 absolute left-8 text-muted-foreground pointer-events-none" />
 					<Input
 						placeholder="Search..."
 						className="w-full bg-transparent relative pl-10 h-10 rounded-md border border-gray"
@@ -125,87 +310,48 @@ export default function WorkspaceSidebar() {
 								<TabsTrigger
 									key={item.name}
 									value={item.value}
-									className="w-fit text-sm border-b-4	 px-0 pb-1 border-transparent bg-transparent rounded-none data-[state=active]:border-b-4 data-[state=active]:border-eerie-black/70 transition-all duration-200 ease-in-out"
+									className="w-fit text-sm border-b-4 px-0 pb-1 border-transparent bg-transparent rounded-none data-[state=active]:border-b-4 data-[state=active]:border-eerie-black/70 transition-all duration-200 ease-in-out"
 								>
 									{item.name}
 								</TabsTrigger>
 							))}
 						</TabsList>
 					</div>
+
 					<div className="w-full h-full">
 						<TabsContent
 							value="blocks"
 							className="w-full h-[calc(100%-4rem)] overflow-y-auto"
 						>
-							<div className="w-[90%] mx-auto h-full gap-4 flex flex-col">
-								{blocks.map((block) => {
-									const Icon = block.icon;
-									return (
-										<div
-											key={block.type}
-											className="w-full h-fit border border-gray p-3 flex items-center gap-2 rounded-md bg-background"
-											draggable
-											onDragStart={(e) => {
-												e.dataTransfer.setData(
-													"application/reactflow",
-													JSON.stringify(block)
-												);
-											}}
-										>
-											<div
-												className={`${block.color} size-8 rounded-sm flex items-center justify-center`}
-											>
-												<Icon className="size-5 text-primary-foreground" />
-											</div>
-											<div className="flex flex-col">
-												<h6 className="font-medium text-sm">
-													{block.title}
-												</h6>
-												<p className="text-xs text-muted-foreground">
-													{block.description}
-												</p>
-											</div>
-										</div>
-									);
-								})}
+							<div className="w-[90%] mx-auto h-full gap-4 flex flex-col py-4">
+								{renderedBlocks}
 							</div>
 						</TabsContent>
+
 						<TabsContent
 							value="tools"
 							className="w-full h-[calc(100%-4rem)] overflow-y-auto"
 						>
-							<div className="w-[90%] mx-auto h-full gap-4 flex flex-col">
-								{tools?.data.subnets.map((tool, index) => {
-									const isLastTool =
-										index === tools.data.subnets.length - 1;
-									return (
-										<div
-											key={`${tool.unique_id}-${index}`}
-											ref={
-												isLastTool ? lastToolRef : null
-											}
-											className="w-full h-fit border border-gray p-3 flex items-center gap-2 rounded-md bg-background"
-											draggable
-											onDragStart={(e) => {
-												e.dataTransfer.setData(
-													"application/reactflow",
-													JSON.stringify(tool)
-												);
-											}}
-										>
-											<div className="flex flex-col">
-												<h6 className="font-medium text-sm capitalize">
-													{tool.subnet_name}
-												</h6>
-												<p className="text-xs text-muted-foreground line-clamp-4">
-													{tool.description}
-												</p>
-											</div>
-										</div>
-									);
-								})}
-								{isLoading && (
-									<Loader2 className="size-4 animate-spin mx-auto" />
+							<div className="w-[90%] mx-auto h-full gap-4 flex flex-col py-4">
+								{renderedTools}
+								{isLoadingTools && (
+									<div className="flex justify-center py-4">
+										<Loader2 className="size-4 animate-spin" />
+									</div>
+								)}
+							</div>
+						</TabsContent>
+
+						<TabsContent
+							value="agents"
+							className="w-full h-[calc(100%-4rem)] overflow-y-auto"
+						>
+							<div className="w-[90%] mx-auto h-full gap-4 flex flex-col py-4">
+								{renderedAgents}
+								{isLoadingAgents && (
+									<div className="flex justify-center py-4">
+										<Loader2 className="size-4 animate-spin" />
+									</div>
 								)}
 							</div>
 						</TabsContent>
@@ -217,7 +363,6 @@ export default function WorkspaceSidebar() {
 				<div className="flex items-center justify-between p-2 group-data-[collapsible=icon]:hidden">
 					<SidebarTrigger className="size-8" />
 				</div>
-
 				<div className="hidden group-data-[collapsible=icon]:flex items-center justify-center p-2">
 					<SidebarTrigger className="size-8" />
 				</div>
