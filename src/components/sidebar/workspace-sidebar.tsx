@@ -12,185 +12,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { blocks } from "@/utils/constants/blocks";
 import { getSubnets } from "@/controllers/subnets/subnets.queries";
 import { getAgents } from "@/controllers/agents/agents.queries";
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useEffect, useCallback, useMemo } from "react";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { usePaginatedData } from "@/hooks/use-paginated-data";
+import { DraggableItem } from "./draggable-item";
 
-const ITEMS_PER_PAGE = 10;
 const navigationItems = [
 	{ name: "Blocks", value: "blocks" },
 	{ name: "Tools", value: "tools" },
 	{ name: "Agents", value: "agents" },
 ] as const;
-
-
-
-const useInfiniteScroll = (
-	fetchFunction: (page: number) => Promise<void>,
-	isLoading: boolean,
-	hasMore: boolean
-) => {
-	const observerRef = useRef<IntersectionObserver | null>(null);
-
-	const lastElementRef = useCallback(
-		(node: HTMLDivElement | null) => {
-			if (isLoading || !node) return;
-
-			observerRef.current?.disconnect();
-			observerRef.current = new IntersectionObserver(
-				(entries) => {
-					if (entries[0].isIntersecting && hasMore) {
-						fetchFunction(0);
-					}
-				},
-				{ threshold: 0.1 }
-			);
-			observerRef.current.observe(node);
-		},
-		[isLoading, hasMore, fetchFunction]
-	);
-
-	useEffect(() => {
-		return () => observerRef.current?.disconnect();
-	}, []);
-
-	return lastElementRef;
-};
-
-const usePaginatedData = <T extends { data: any }>(
-	fetchFunction: (params: { offset: number; limit: number }) => Promise<T>,
-	getItemsArray: (data: T) => any[]
-) => {
-	const [data, setData] = useState<T | undefined>();
-	const [pagination, setPagination] = useState<PaginationState>({
-		currentPage: 0,
-		hasMore: true,
-		isLoading: false,
-	});
-
-	const fetchData = useCallback(
-		async (page: number) => {
-			setPagination((prev) => ({ ...prev, isLoading: true }));
-
-			try {
-				const response = await fetchFunction({
-					offset: page * ITEMS_PER_PAGE,
-					limit: ITEMS_PER_PAGE,
-				});
-
-				const items = getItemsArray(response);
-
-				setData((prevData) => {
-					if (page === 0 || !prevData) return response;
-
-					const prevItems = getItemsArray(prevData);
-					return {
-						...response,
-						data: {
-							...response.data,
-							[Object.keys(response.data)[0]]: [
-								...prevItems,
-								...items,
-							],
-						},
-					} as T;
-				});
-
-				setPagination((prev) => ({
-					...prev,
-					hasMore: items.length === ITEMS_PER_PAGE,
-					isLoading: false,
-				}));
-			} catch (error) {
-				console.error("Error fetching data:", error);
-				setPagination((prev) => ({ ...prev, isLoading: false }));
-			}
-		},
-		[fetchFunction, getItemsArray]
-	);
-
-	const loadMore = useCallback(async () => {
-		if (!pagination.isLoading && pagination.hasMore) {
-			const nextPage = pagination.currentPage + 1;
-			setPagination((prev) => ({ ...prev, currentPage: nextPage }));
-			fetchData(nextPage);
-		}
-	}, [
-		fetchData,
-		pagination.currentPage,
-		pagination.isLoading,
-		pagination.hasMore,
-	]);
-
-	const reset = useCallback(() => {
-		setData(undefined);
-		setPagination({ currentPage: 0, hasMore: true, isLoading: false });
-		fetchData(0);
-	}, [fetchData]);
-
-	useEffect(() => {
-		fetchData(pagination.currentPage);
-	}, [pagination.currentPage]);
-
-	return { data, ...pagination, loadMore, reset };
-};
-
-
-interface DraggableItemProps {
-	item: any;
-	title: string;
-	description: string;
-	icon?: React.ComponentType<{ className?: string }>;
-	color?: string;
-	isLast?: boolean;
-	lastElementRef?: (node: HTMLDivElement) => void;
-}
-
-const DraggableItem = ({
-	item,
-	title,
-	description,
-	icon:  Icon,
-	color,
-	isLast,
-	lastElementRef,
-}: DraggableItemProps) => {
-	const handleDragStart = useCallback(
-		(e: React.DragEvent) => {
-			e.dataTransfer.setData(
-				"application/reactflow",
-				JSON.stringify(item)
-			);
-		},
-		[item]
-	);
-
-	return (
-		<div
-			ref={isLast ? lastElementRef : undefined}
-			className="w-full h-fit border border-gray p-3 flex items-center gap-2 rounded-md bg-background hover:bg-accent/50 transition-colors cursor-grab active:cursor-grabbing"
-			draggable
-			onDragStart={handleDragStart}
-		>
-			{Icon && color && (
-				<div
-					className={`${color} size-8 rounded-sm flex items-center justify-center flex-shrink-0`}
-				>
-					<Icon className="size-5 text-primary-foreground" />
-				</div>
-			)}
-			<div className="flex flex-col min-w-0 flex-1">
-				<h6
-					className="font-medium text-sm capitalize truncate"
-					title={title}
-				>
-					{title}
-				</h6>
-				<p className="text-xs text-muted-foreground line-clamp-4 break-words">
-					{description}
-				</p>
-			</div>
-		</div>
-	);
-};
 
 export default function WorkspaceSidebar() {
 	const getSubnetsArray = useCallback(
@@ -244,7 +75,9 @@ export default function WorkspaceSidebar() {
 						item={block}
 						title={block.title}
 						description={block.description}
-						icon={Icon as React.ComponentType<{ className?: string }>}
+						icon={
+							Icon as React.ComponentType<{ className?: string }>
+						}
 						color={block.color}
 					/>
 				);
