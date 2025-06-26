@@ -31,11 +31,21 @@ export function ThemeProvider({
 	storageKey = "ui-theme",
 	...props
 }: ThemeProviderProps) {
-	const [theme, setTheme] = useState<Theme>(
-		() => (localStorage?.getItem(storageKey) as Theme) || defaultTheme
-	);
+	const [theme, setTheme] = useState<Theme>(defaultTheme);
+	const [mounted, setMounted] = useState(false);
+
+	// Initialize theme from localStorage after component mounts on client
+	useEffect(() => {
+		setMounted(true);
+		const storedTheme = localStorage.getItem(storageKey) as Theme;
+		if (storedTheme) {
+			setTheme(storedTheme);
+		}
+	}, [storageKey]);
 
 	useEffect(() => {
+		if (!mounted) return;
+
 		const root = window.document.documentElement;
 
 		root.classList.remove("light", "dark");
@@ -52,15 +62,20 @@ export function ThemeProvider({
 		}
 
 		root.classList.add(theme);
-	}, [theme]);
+	}, [theme, mounted]);
 
 	const value = {
 		theme,
 		setTheme: (theme: Theme) => {
-			localStorage?.setItem(storageKey, theme);
+			localStorage.setItem(storageKey, theme);
 			setTheme(theme);
 		},
 	};
+
+	// Prevent hydration mismatch by rendering a placeholder until mounted
+	if (!mounted) {
+		return <>{children}</>;
+	}
 
 	return (
 		<ThemeProviderContext.Provider {...props} value={value}>
