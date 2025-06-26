@@ -5,11 +5,14 @@ import React from "react";
 
 export default function layout({ children }: { children: React.ReactNode }) {
 	return (
-		<div className="flex h-screen overflow-hidden bg-background text-foreground">
-			<SidebarProvider>
+		<SidebarProvider className="flex h-screen overflow-hidden bg-background text-foreground">
+			<div className="flex w-fit max-w-48">
 				<AppSidebar />
+			</div>
+
+			<div className="flex w-full relative">
 				<WorkflowWrapper>{children}</WorkflowWrapper>
-			</SidebarProvider>
-		</div>
+			</div>
+		</SidebarProvider>
 	);
 }

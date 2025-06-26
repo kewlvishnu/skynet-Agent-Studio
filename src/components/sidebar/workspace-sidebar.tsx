@@ -11,7 +11,7 @@ import { Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { blocks } from "@/utils/constants/blocks";
 
-export default function AppSidebar() {
+export default function WorkspaceSidebar() {
 	return (
 		<Sidebar
 			className="w-60 border-r border-gray-800 absolute top-1 left-0 h-full mt-0.5 bg-background z-20"
@@ -59,7 +59,7 @@ export default function AppSidebar() {
 									return (
 										<div
 											key={block.type}
-											className="w-full h-full border border-gray-700 p-3 flex items-center gap-2"
+											className="w-full h-fit border border-gray-700 p-3 flex items-center gap-2"
 											draggable
 											onDragStart={(e) => {
 												e.dataTransfer.setData(

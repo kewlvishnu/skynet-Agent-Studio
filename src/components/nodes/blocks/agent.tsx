@@ -13,7 +13,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { Position } from "@xyflow/react";
-import { Bot, Code, Copy, Maximize2, Plus, Trash } from "lucide-react";
+import { Bot, Code, Copy, Maximize2, Trash } from "lucide-react";
 
 interface AgentNodeProps {
 	id: string;
@@ -64,17 +64,7 @@ export default function AgentNode({ id, data }: AgentNodeProps) {
 				<div className="px-4 space-y-3">
 					<div className="space-y-1">
 						<Label className="text-sm font-medium text-foreground">
-							System Prompt
-						</Label>
-						<Textarea
-							placeholder="Enter system prompt..."
-							className="min-h-[100px] bg-background/50 border border-border text-foreground placeholder:text-muted-foreground focus:border-brand-purple"
-						/>
-					</div>
-
-					<div className="space-y-1">
-						<Label className="text-sm font-medium text-foreground">
-							User Prompt
+							Prompt
 						</Label>
 						<Textarea
 							placeholder="Enter context or user message..."
@@ -91,7 +81,7 @@ export default function AgentNode({ id, data }: AgentNodeProps) {
 								Model{" "}
 								<span className="text-destructive">*</span>
 							</Label>
-							<Select defaultValue="gpt-4o">
+							<Select defaultValue="gpt-4o" disabled>
 								<SelectTrigger className="bg-background/50 border border-border text-foreground focus:border-brand-purple">
 									<SelectValue placeholder="Select Model" />
 								</SelectTrigger>
@@ -122,6 +112,7 @@ export default function AgentNode({ id, data }: AgentNodeProps) {
 									step={0.1}
 									className="w-full bg-gray-600 rounded-full focus-visible:ring-0 focus-visible:ring-offset-0"
 									defaultValue={[0.5]}
+									disabled
 								/>
 								<div className="text-right text-sm text-muted-foreground mt-1">
 									0.5
@@ -131,38 +122,21 @@ export default function AgentNode({ id, data }: AgentNodeProps) {
 					</div>
 
 					<div className="space-y-1">
-						<Label className="text-sm font-medium text-foreground">
-							Tools
-						</Label>
-						<Button
-							variant="outline"
-							className="w-full h-12 text-muted-foreground hover:text-foreground bg-background/50 hover:bg-brand-purple/10 border-border hover:border-brand-purple"
-						>
-							<Plus className="w-4 h-4 mr-2" />
-							Add Tool
-						</Button>
-					</div>
-
-					<div className="space-y-1">
 						<Label
 							htmlFor="response-format"
 							className="text-sm font-medium text-foreground"
 						>
-							Response Format
+							Response Type
 						</Label>
 						<div className="relative">
-							<Textarea
-								id="response-format"
-								placeholder="Enter JSON schema..."
-								className="min-h-[100px] bg-background/50 border border-border text-foreground placeholder:text-muted-foreground focus:border-brand-purple font-mono"
-							/>
-							<Button
-								variant="ghost"
-								size="icon"
-								className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
-							>
-								<Code className="w-4 h-4" />
-							</Button>
+							<Select>
+								<SelectTrigger className="bg-background/50 border border-border text-foreground focus:border-brand-purple">
+									<SelectValue placeholder="Select Response Type" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="json">JSON</SelectItem>
+								</SelectContent>
+							</Select>
 						</div>
 					</div>
 				</div>

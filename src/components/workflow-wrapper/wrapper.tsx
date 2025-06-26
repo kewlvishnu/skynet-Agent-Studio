@@ -4,7 +4,7 @@ import { Play } from "lucide-react";
 
 export default function wrapper({ children }: { children: React.ReactNode }) {
 	return (
-		<div className="flex flex-col h-full w-full">
+		<div className="flex flex-col h-full w-full relative">
 			<div className="h-16 w-full">
 				<div className="flex items-center justify-between p-4 border-b border-gray-800 w-full">
 					<div className="flex flex-col">
@@ -23,7 +23,9 @@ export default function wrapper({ children }: { children: React.ReactNode }) {
 					</div>
 				</div>
 			</div>
-			<div className="flex-1 h-full bg-background">{children}</div>
+			<div className="flex-1 h-full bg-background relative">
+				{children}
+			</div>
 		</div>
 	);
 }

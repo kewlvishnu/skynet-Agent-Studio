@@ -66,17 +66,21 @@ export default function KnowledgeNode({ id, data }: KnowledgeNodeProps) {
 								<SelectValue placeholder="Select Operation" />
 							</SelectTrigger>
 							<SelectContent className="bg-card border border-border">
-								{["Search", "Index", "Update", "Delete"].map(
-									(operation) => (
-										<SelectItem
-											key={operation.toLowerCase()}
-											value={operation.toLowerCase()}
-											className="text-foreground hover:bg-brand-cyan/10 focus:bg-brand-cyan/20"
-										>
-											{operation}
-										</SelectItem>
-									)
-								)}
+								{[
+									"Search",
+									"Get",
+									"Create",
+									"Update",
+									"Delete",
+								].map((operation) => (
+									<SelectItem
+										key={operation.toLowerCase()}
+										value={operation.toLowerCase()}
+										className="text-foreground hover:bg-brand-cyan/10 focus:bg-brand-cyan/20"
+									>
+										{operation}
+									</SelectItem>
+								))}
 							</SelectContent>
 						</Select>
 					</div>

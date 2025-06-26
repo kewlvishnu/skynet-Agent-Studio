@@ -17,7 +17,6 @@ import {
 	Node,
 	Edge,
 } from "@xyflow/react";
-import AppSidebar from "@/components/sidebar/workspace-sidebar";
 import "@xyflow/react/dist/style.css";
 import { nodeTypes } from "@/components/nodes";
 import { useState, useCallback } from "react";
@@ -25,11 +24,12 @@ import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
 import CustomEdge from "@/components/edge/custom-edge";
 import RightWorkspaceSidebar from "@/components/sidebar/right-workspace-sidebar";
+import WorkspaceSidebar from "@/components/sidebar/workspace-sidebar";
 
 function LeftWorkspaceSidebar() {
 	return (
 		<>
-			<AppSidebar />
+			<WorkspaceSidebar />
 		</>
 	);
 }

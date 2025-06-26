@@ -1,14 +1,12 @@
 "use client";
-import { Bot, LibraryBig, Plus, ScrollText, Settings } from "lucide-react";
+import { Bot, LibraryBig, ScrollText, Settings } from "lucide-react";
 
 import {
 	Sidebar,
 	SidebarContent,
 	SidebarFooter,
 	SidebarGroup,
-	SidebarGroupAction,
 	SidebarGroupContent,
-	SidebarGroupLabel,
 	SidebarHeader,
 	SidebarMenu,
 	SidebarMenuButton,
@@ -16,13 +14,14 @@ import {
 	SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { ThemeToggleSimple } from "@/components/ui/theme-toggle-simple";
-
-const workflows = [
-	{ color: "bg-pink-500", name: "Workflow 1" },
-	{ color: "bg-blue-500", name: "Workflow 2" },
-];
+import Image from "next/image";
 
 const navigationItems = [
+	{
+		icon: Bot,
+		name: "Agents",
+		url: "/agents",
+	},
 	{
 		icon: ScrollText,
 		name: "Logs",
@@ -42,48 +41,27 @@ const navigationItems = [
 
 export function AppSidebar() {
 	return (
-		<Sidebar className="border-gray-800" collapsible="icon">
+		<Sidebar className="border-gray-800 w-full max-w-48" collapsible="icon">
 			<SidebarHeader>
-				<div className="flex items-center gap-2.5 px-2">
-					<div className="size-6 rounded bg-purple-800 flex items-center justify-center">
-						<Bot className="size-5 text-white" />
+					<div className="flex items-center gap-2.5 h-12.5 py-2 px-0.5 w-fit">
+						<Image
+							src="/logo/logo-light.svg"
+							alt="logo"
+							width={2000}
+							height={2000}
+							className="w-10 h-8 hidden group-data-[collapsible=icon]:block"
+						/>
+						<Image
+							src="/logo/full-logo-light.svg"
+							alt="logo"
+							width={2000}
+							height={2000}
+							className="w-10/12 ml-2 h-8 block group-data-[collapsible=icon]:hidden"
+						/>
 					</div>
-					<h1 className="truncate max-w-[120px] text-sm font-medium text-sidebar-foreground">
-						Chandra Bose
-					</h1>
-				</div>
 			</SidebarHeader>
 
 			<SidebarContent>
-				<SidebarGroup className="group-data-[collapsible=icon]:hidden">
-					<div className="flex items-center justify-between">
-						<SidebarGroupLabel className="text-sidebar-foreground/70">
-							Workflows
-						</SidebarGroupLabel>
-						<SidebarGroupAction>
-							<Plus className="size-4" />
-							<span className="sr-only">Add Workflow</span>
-						</SidebarGroupAction>
-					</div>
-					<SidebarGroupContent>
-						<div className="flex flex-col gap-2">
-							{workflows.map((workflow, index) => (
-								<div
-									key={index}
-									className="flex items-center gap-2.5 w-full rounded-none p-2 px-3 bg-sidebar-accent"
-								>
-									<div
-										className={`size-4 ${workflow.color} rounded`}
-									/>
-									<h4 className="text-sm font-medium text-sidebar-foreground">
-										{workflow.name}
-									</h4>
-								</div>
-							))}
-						</div>
-					</SidebarGroupContent>
-				</SidebarGroup>
-
 				<SidebarGroup>
 					<SidebarGroupContent>
 						<SidebarMenu>
