@@ -2,23 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @layer base {
 	:root {
+		/* Brand Colors */
+		--royal-blue: 225 80% 53%; /* #2c5ae1 */
+		--royal-blue-hover: 225 79% 47%; /* #2851cb */
+		--royal-blue-active: 225 78% 42%; /* #2348b4 */
+		--royal-blue-dark: 224 75% 39%; /* #2144a9 */
+		--royal-blue-dark-hover: 224 68% 32%; /* #1a3687 */
+		--royal-blue-dark-active: 224 66% 26%; /* #142865 */
+		--royal-blue-darker: 224 69% 20%; /* #0f1f4f */
+
+		--eerie-black: 225 25% 12%; /* #121620 */
+		--eerie-black-hover: 225 29% 10%; /* #10141d */
+		--eerie-black-active: 225 31% 9%; /* #0e121a */
+		--eerie-black-darker: 225 23% 9%; /* #0e1118 */
+		--eerie-black-darkest: 225 31% 7%; /* #0b0d13 */
+		--eerie-black-ultra: 225 27% 5%; /* #080a0e */
+		--eerie-black-deepest: 225 29% 4%; /* #06080b */
+
+		--anti-flash-white: 0 0% 100%; /* #fefefe */
+		--anti-flash-white-hover: 0 0% 99%; /* #fdfdfd */
+		--anti-flash-white-active: 0 0% 98%; /* #fbfbfb */
+		--anti-flash-white-base: 0 0% 95%; /* #f2f2f2 */
+		--anti-flash-white-medium: 0 0% 85%; /* #dadada */
+		--anti-flash-white-dark: 0 0% 76%; /* #c2c2c2 */
+		--anti-flash-white-darker: 0 0% 71%; /* #b6b6b6 */
+
+		/* Gray Scale */
+		--gray: 0 0% 57%; /* #919191 */
+		--gray-dark: 0 0% 43%; /* #6d6d6d */
+		--gray-darkest: 0 0% 33%; /* #555555 */
+
+		/* Blue Accents */
+		--blue-accent-light: 225 87% 96%; /* #eaeffc */
+		--blue-accent-light-hover: 225 83% 93%; /* #dfe6fb */
+		--blue-accent-light-active: 225 73% 85%; /* #beccf6 */
+
+		/* Secondary Gray Blues */
+		--secondary-gray-blue: 220 4% 89%; /* #e7e8e9 */
+		--secondary-gray-blue-hover: 220 4% 86%; /* #dbdcde */
+		--secondary-gray-blue-active: 220 3% 73%; /* #b6b7ba */
+
+		/* Legacy Variables */
 		--bg: 0 0% 100%; /* #FFFFFF */
 		--text: 222 18% 8%; /* #0F1115 */
-		--primary-color: 222 94% 56%; /* #255FF8 */
-		--secondary-color: 228 15% 12%; /* #1A1C23 */
+		--primary-color: 225 80% 53%; /* #2c5ae1 - Royal Blue */
+		--secondary-color: 225 25% 12%; /* #121620 - Eerie Black */
 		--accent-color: 188 100% 50%; /* #00D4FF */
 		--border-color: 220 17% 89%; /* #E1E3E8 */
 		--muted-color: 228 5% 63%; /* #9A9CA4 */
 
 		--background: 0 0% 100%;
-		--text: 222 18% 8%; /* #0F1115 */
+		--foreground: 222 18% 8%;
 		--card: 0 0% 100%;
 		--card-foreground: 0 0% 3.9%;
 		--popover: 0 0% 100%;
 		--popover-foreground: 0 0% 3.9%;
-		--primary: 0 0% 9%;
+		--primary: 225 80% 53%; /* Royal Blue */
 		--primary-foreground: 0 0% 98%;
 		--secondary: 0 0% 96.1%;
 		--secondary-foreground: 0 0% 9%;
@@ -48,7 +93,33 @@
 	}
 
 	.dark {
-		--bg: 222 18% 8%; /* #0F1115 */
+		/* Brand Colors - Dark Theme */
+		--royal-blue: 225 80% 53%; /* #2c5ae1 */
+		--royal-blue-hover: 225 79% 47%; /* #2851cb */
+		--royal-blue-active: 225 78% 42%; /* #2348b4 */
+		--royal-blue-dark: 224 75% 39%; /* #2144a9 */
+		--royal-blue-dark-hover: 224 68% 32%; /* #1a3687 */
+		--royal-blue-dark-active: 224 66% 26%; /* #142865 */
+		--royal-blue-darker: 224 69% 20%; /* #0f1f4f */
+
+		--eerie-black: 225 25% 12%; /* #121620 */
+		--eerie-black-hover: 225 29% 10%; /* #10141d */
+		--eerie-black-active: 225 31% 9%; /* #0e121a */
+		--eerie-black-darker: 225 23% 9%; /* #0e1118 */
+		--eerie-black-darkest: 225 31% 7%; /* #0b0d13 */
+		--eerie-black-ultra: 225 27% 5%; /* #080a0e */
+		--eerie-black-deepest: 225 29% 4%; /* #06080b */
+
+		--anti-flash-white: 0 0% 100%; /* #fefefe */
+		--anti-flash-white-hover: 0 0% 99%; /* #fdfdfd */
+		--anti-flash-white-active: 0 0% 98%; /* #fbfbfb */
+		--anti-flash-white-base: 0 0% 95%; /* #f2f2f2 */
+		--anti-flash-white-medium: 0 0% 85%; /* #dadada */
+		--anti-flash-white-dark: 0 0% 76%; /* #c2c2c2 */
+		--anti-flash-white-darker: 0 0% 71%; /* #b6b6b6 */
+
+		/* Legacy Variables - Dark Theme */
+		--bg: 225 25% 12%; /* #121620 - Eerie Black */
 		--text: 220 17% 89%; /* #E1E3E8 */
 		--primary: 219 100% 63%; /* #4287FF */
 		--secondary: 222 9% 78%; /* #BFC2CC */
@@ -56,13 +127,13 @@
 		--border: 230 10% 18%; /* #2A2C33 */
 		--muted: 230 5% 45%; /* #6E7078 */
 
-		--background: #020817;
+		--background: 225 25% 12%; /* Eerie Black */
 		--foreground: 0 0% 98%;
 		--card: 0 0% 3.9%;
 		--card-foreground: 0 0% 98%;
 		--popover: 0 0% 3.9%;
 		--popover-foreground: 0 0% 98%;
-		--primary: 217 33% 18%;
+		--primary: 225 80% 53%; /* Royal Blue */
 		--primary-foreground: 0 0% 9%;
 		--secondary: 0 0% 14.9%;
 		--secondary-foreground: 0 0% 98%;
@@ -80,7 +151,7 @@
 		--chart-3: 30 80% 55%;
 		--chart-4: 280 65% 60%;
 		--chart-5: 340 75% 55%;
-		--sidebar-background: #020817;
+		--sidebar-background: 225 25% 12%; /* Eerie Black */
 		--sidebar-foreground: 240 4.8% 95.9%;
 		--sidebar-primary: 224.3 76.3% 48%;
 		--sidebar-primary-foreground: 0 0% 100%;
@@ -92,6 +163,38 @@
 }
 
 @layer utilities {
+	/* Brand Color Utilities */
+	.bg-royal-blue {
+		background-color: hsl(var(--royal-blue));
+	}
+	.text-royal-blue {
+		color: hsl(var(--royal-blue));
+	}
+	.bg-eerie-black {
+		background-color: hsl(var(--eerie-black));
+	}
+	.text-eerie-black {
+		color: hsl(var(--eerie-black));
+	}
+	.bg-anti-flash-white {
+		background-color: hsl(var(--anti-flash-white));
+	}
+	.text-anti-flash-white {
+		color: hsl(var(--anti-flash-white));
+	}
+
+	/* Interactive States */
+	.hover\:bg-royal-blue:hover {
+		background-color: hsl(var(--royal-blue-hover));
+	}
+	.active\:bg-royal-blue:active {
+		background-color: hsl(var(--royal-blue-active));
+	}
+	.hover\:bg-eerie-black:hover {
+		background-color: hsl(var(--eerie-black-hover));
+	}
+
+	/* Legacy Utilities */
 	.bg-theme {
 		background-color: hsl(var(--bg));
 	}

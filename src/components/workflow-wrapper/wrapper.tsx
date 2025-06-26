@@ -6,7 +6,7 @@ export default function wrapper({ children }: { children: React.ReactNode }) {
 	return (
 		<div className="flex flex-col h-full w-full relative">
 			<div className="h-16 w-full">
-				<div className="flex items-center justify-between p-4 border-b border-gray-800 w-full">
+				<div className="flex items-center justify-between p-4 border-b border-gray w-full">
 					<div className="flex flex-col">
 						<h1 className="text-sm font-medium text-foreground">
 							Workflow

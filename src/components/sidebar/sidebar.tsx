@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sidebar";
 import { ThemeToggleSimple } from "@/components/ui/theme-toggle-simple";
 import Image from "next/image";
+import Link from "next/link";
 
 const navigationItems = [
 	{
@@ -41,24 +42,24 @@ const navigationItems = [
 
 export function AppSidebar() {
 	return (
-		<Sidebar className="border-gray-800 w-full max-w-48" collapsible="icon">
+		<Sidebar className="border-gray w-full max-w-48" collapsible="icon">
 			<SidebarHeader>
-					<div className="flex items-center gap-2.5 h-12.5 py-2 px-0.5 w-fit">
-						<Image
-							src="/logo/logo-light.svg"
-							alt="logo"
-							width={2000}
-							height={2000}
-							className="w-10 h-8 hidden group-data-[collapsible=icon]:block"
-						/>
-						<Image
-							src="/logo/full-logo-light.svg"
-							alt="logo"
-							width={2000}
-							height={2000}
-							className="w-10/12 ml-2 h-8 block group-data-[collapsible=icon]:hidden"
-						/>
-					</div>
+				<div className="flex items-center gap-2.5 h-12.5 py-2 px-0.5 w-fit">
+					<Image
+						src="/logo/logo-light.svg"
+						alt="logo"
+						width={2000}
+						height={2000}
+						className="w-10 h-8 hidden group-data-[collapsible=icon]:block"
+					/>
+					<Image
+						src="/logo/full-logo-light.svg"
+						alt="logo"
+						width={2000}
+						height={2000}
+						className="w-10/12 ml-2 h-8 block group-data-[collapsible=icon]:hidden"
+					/>
+				</div>
 			</SidebarHeader>
 
 			<SidebarContent>
@@ -69,13 +70,18 @@ export function AppSidebar() {
 								<SidebarMenuItem key={item.name}>
 									<SidebarMenuButton
 										asChild
-										className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+										className="text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent h-8"
 										tooltip={item.name}
 									>
-										<a href={item.url}>
-											<item.icon className="w-4 h-4" />
-											<span>{item.name}</span>
-										</a>
+										<Link
+											href={item.url}
+											className="flex items-center gap-3"
+										>
+											<item.icon className="size-6" />
+											<span className="text-[15px]">
+												{item.name}
+											</span>
+										</Link>
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							))}
