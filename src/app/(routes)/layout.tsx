@@ -1,3 +1,4 @@
+"use client";
 import { AppSidebar } from "@/components/sidebar/sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import WorkflowWrapper from "@/components/workflow-wrapper/wrapper";

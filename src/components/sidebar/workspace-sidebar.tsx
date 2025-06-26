@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { blocks } from "@/utils/constants/blocks";
 import { getSubnets } from "@/controllers/subnets/subnets.queries";
 import { getAgents } from "@/controllers/agents/agents.queries";
-import { useEffect, useCallback, useMemo } from "react";
+import { useEffect, useCallback, useMemo, useState } from "react";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { usePaginatedData } from "@/hooks/use-paginated-data";
 import { DraggableItem } from "./draggable-item";
@@ -23,7 +23,29 @@ const navigationItems = [
 	{ name: "Agents", value: "agents" },
 ] as const;
 
+// Debounce search
+const useDebounceSearch = (value: string, delay: number = 300) => {
+	const [debouncedValue, setDebouncedValue] = useState(value);
+
+	useEffect(() => {
+		const handler = setTimeout(() => {
+			setDebouncedValue(value);
+		}, delay);
+
+		return () => {
+			clearTimeout(handler);
+		};
+	}, [value, delay]);
+
+	return debouncedValue;
+};
+
 export default function WorkspaceSidebar() {
+	const [searchTerm, setSearchTerm] = useState("");
+	const [activeTab, setActiveTab] = useState("blocks");
+	
+	const debouncedSearchTerm = useDebounceSearch(searchTerm);
+
 	const getSubnetsArray = useCallback(
 		(data: SubnetResponse) => data.data.subnets,
 		[]
@@ -33,13 +55,32 @@ export default function WorkspaceSidebar() {
 		[]
 	);
 
+	// Memoized subnets fetch function
+	const fetchSubnetsWithSearch = useCallback(
+		(params: { offset: number; limit: number }) =>
+			getSubnets({
+				...params,
+				...(debouncedSearchTerm ? { search: debouncedSearchTerm } : {}),
+			}),
+		[debouncedSearchTerm]
+	);
+
+	const fetchAgentsWithSearch = useCallback(
+		(params: { offset: number; limit: number }) =>
+			getAgents({
+				...params,
+				...(debouncedSearchTerm ? { search: debouncedSearchTerm } : {}),
+			}),
+		[debouncedSearchTerm]
+	);
+
 	const {
 		data: tools,
 		isLoading: isLoadingTools,
 		hasMore: hasMoreTools,
 		loadMore: loadMoreTools,
 		reset: resetTools,
-	} = usePaginatedData(getSubnets, getSubnetsArray);
+	} = usePaginatedData(fetchSubnetsWithSearch, getSubnetsArray);
 
 	const {
 		data: agents,
@@ -47,7 +88,7 @@ export default function WorkspaceSidebar() {
 		hasMore: hasMoreAgents,
 		loadMore: loadMoreAgents,
 		reset: resetAgents,
-	} = usePaginatedData(getAgents, getAgentsArray);
+	} = usePaginatedData(fetchAgentsWithSearch, getAgentsArray);
 
 	const lastToolRef = useInfiniteScroll(
 		loadMoreTools,
@@ -60,14 +101,45 @@ export default function WorkspaceSidebar() {
 		hasMoreAgents
 	);
 
+	// Initial load
 	useEffect(() => {
 		resetTools();
 		resetAgents();
 	}, [resetTools, resetAgents]);
 
+	// Reset data whenever debounced search term changes
+	useEffect(() => {
+		resetTools();
+		resetAgents();
+	}, [debouncedSearchTerm, resetTools, resetAgents]);
+
+	// Reset data when switching tabs with an active search term
+	useEffect(() => {
+		if (debouncedSearchTerm) {
+			if (activeTab === "tools") {
+				resetTools();
+			} else if (activeTab === "agents") {
+				resetAgents();
+			}
+		}
+	}, [activeTab, debouncedSearchTerm, resetTools, resetAgents]);
+
+	// Memoizing blocks filtering (client-side search)
+	const filteredBlocks = useMemo(() => {
+		if (!searchTerm) return blocks;
+		const lowerSearchTerm = searchTerm.toLowerCase();
+		return blocks.filter(
+			(block) =>
+				block.title.toLowerCase().includes(lowerSearchTerm) ||
+				block.description.toLowerCase().includes(lowerSearchTerm)
+		);
+	}, [searchTerm]); 
+
+
+	// Blocks rendering is memoized
 	const renderedBlocks = useMemo(
 		() =>
-			blocks.map((block) => {
+			filteredBlocks.map((block) => {
 				const Icon = block.icon;
 				return (
 					<DraggableItem
@@ -75,47 +147,44 @@ export default function WorkspaceSidebar() {
 						item={block}
 						title={block.title}
 						description={block.description}
-						icon={
-							Icon as React.ComponentType<{ className?: string }>
-						}
+						icon={Icon as React.ComponentType<{ className?: string }>}
 						color={block.color}
 					/>
 				);
 			}),
-		[blocks]
+		[filteredBlocks]
 	);
 
-	const renderedTools = useMemo(
-		() =>
-			tools?.data.subnets.map((tool, index) => (
-				<DraggableItem
-					key={`${tool.unique_id}-${index}`}
-					item={tool}
-					title={tool.subnet_name}
-					description={tool.description}
-					isLast={index === tools.data.subnets.length - 1}
-					lastElementRef={lastToolRef}
-				/>
-			)) || [],
-		[tools, lastToolRef]
-	);
+	// Tools rendering is not memoized
+	const renderedTools = tools?.data.subnets.map((tool, index) => (
+		<DraggableItem
+			key={`${tool.unique_id}-${index}`}
+			item={tool}
+			title={tool.subnet_name}
+			description={tool.description}
+			isLast={index === tools.data.subnets.length - 1}
+			lastElementRef={lastToolRef}
+		/>
+	)) || [];
 
-	const renderedAgents = useMemo(
-		() =>
-			agents?.data.agents.map((agent, index) => (
-				<DraggableItem
-					key={`${agent.id}-${index}`}
-					item={agent}
-					title={agent.name}
-					description={
-						agent.description || "No description available"
-					}
-					isLast={index === agents.data.agents.length - 1}
-					lastElementRef={lastAgentRef}
-				/>
-			)) || [],
-		[agents, lastAgentRef]
-	);
+	// Agents rendering is not memoized
+	const renderedAgents = agents?.data.agents.map((agent, index) => (
+		<DraggableItem
+			key={`${agent.id}-${index}`}
+			item={agent}
+			title={agent.name}
+			description={agent.description || "No description available"}
+			isLast={index === agents.data.agents.length - 1}
+			lastElementRef={lastAgentRef}
+		/>
+	)) || [];
+
+	const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+		setSearchTerm(e.target.value);
+	}, []);
+
+	const showToolsLoading = isLoadingTools && debouncedSearchTerm;
+	const showAgentsLoading = isLoadingAgents && debouncedSearchTerm;
 
 	return (
 		<Sidebar
@@ -127,6 +196,8 @@ export default function WorkspaceSidebar() {
 					<Search className="size-4 absolute left-8 text-muted-foreground pointer-events-none" />
 					<Input
 						placeholder="Search..."
+						value={searchTerm}
+						onChange={handleSearchChange}
 						className="w-full bg-transparent relative pl-10 h-10 rounded-md border border-gray"
 					/>
 				</div>
@@ -134,7 +205,8 @@ export default function WorkspaceSidebar() {
 
 			<SidebarContent className="overflow-hidden group-data-[collapsible=icon]:overflow-hidden">
 				<Tabs
-					defaultValue="blocks"
+					value={activeTab}
+					onValueChange={setActiveTab}
 					className="w-full h-full group-data-[collapsible=icon]:hidden"
 				>
 					<div className="w-full border-b border-gray relative h-10">
@@ -158,6 +230,11 @@ export default function WorkspaceSidebar() {
 						>
 							<div className="w-[90%] mx-auto h-full gap-4 flex flex-col py-4">
 								{renderedBlocks}
+								{searchTerm && filteredBlocks.length === 0 && (
+									<div className="text-center text-muted-foreground py-8">
+										No blocks found for &quot;{searchTerm}&quot;
+									</div>
+								)}
 							</div>
 						</TabsContent>
 
@@ -167,7 +244,17 @@ export default function WorkspaceSidebar() {
 						>
 							<div className="w-[90%] mx-auto h-full gap-4 flex flex-col py-4">
 								{renderedTools}
-								{isLoadingTools && (
+								{showToolsLoading && (
+									<div className="flex justify-center py-4">
+										<Loader2 className="size-4 animate-spin" />
+									</div>
+								)}
+								{debouncedSearchTerm && renderedTools.length === 0 && !isLoadingTools && (
+									<div className="text-center text-muted-foreground py-8">
+										No tools found for &quot;{debouncedSearchTerm}&quot;
+									</div>
+								)}
+								{isLoadingTools && !debouncedSearchTerm && (
 									<div className="flex justify-center py-4">
 										<Loader2 className="size-4 animate-spin" />
 									</div>
@@ -181,7 +268,17 @@ export default function WorkspaceSidebar() {
 						>
 							<div className="w-[90%] mx-auto h-full gap-4 flex flex-col py-4">
 								{renderedAgents}
-								{isLoadingAgents && (
+								{showAgentsLoading && (
+									<div className="flex justify-center py-4">
+										<Loader2 className="size-4 animate-spin" />
+									</div>
+								)}
+								{debouncedSearchTerm && renderedAgents.length === 0 && !isLoadingAgents && (
+									<div className="text-center text-muted-foreground py-8">
+										No agents found for &quot;{debouncedSearchTerm}&quot;
+									</div>
+								)}
+								{isLoadingAgents && !debouncedSearchTerm && (
 									<div className="flex justify-center py-4">
 										<Loader2 className="size-4 animate-spin" />
 									</div>

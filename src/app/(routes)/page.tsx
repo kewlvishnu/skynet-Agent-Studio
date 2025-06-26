@@ -11,11 +11,13 @@ import {
 	applyNodeChanges,
 	applyEdgeChanges,
 	addEdge,
+	useReactFlow,
 	OnNodesChange,
 	OnEdgesChange,
 	OnConnect,
 	Node,
 	Edge,
+	ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { nodeTypes } from "@/components/nodes";
@@ -26,12 +28,12 @@ import CustomEdge from "@/components/edge/custom-edge";
 import RightWorkspaceSidebar from "@/components/sidebar/right-workspace-sidebar";
 import WorkspaceSidebar from "@/components/sidebar/workspace-sidebar";
 
+const edgeTypes = {
+	custom: CustomEdge,
+};
+
 function LeftWorkspaceSidebar() {
-	return (
-		<>
-			<WorkspaceSidebar />
-		</>
-	);
+	return <WorkspaceSidebar />;
 }
 
 function RightSidebar() {
@@ -49,7 +51,9 @@ function RightSidebar() {
 	);
 }
 
-export default function Home() {
+function FlowCanvas() {
+	const { screenToFlowPosition } = useReactFlow();
+
 	const [nodes, setNodes] = useState<Node[]>([
 		{
 			id: "1",
@@ -88,14 +92,23 @@ export default function Home() {
 		);
 	}, []);
 
+	const deleteNode = useCallback((nodeId: string) => {
+		setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+		setEdges((eds) =>
+			eds.filter(
+				(edge) => edge.source !== nodeId && edge.target !== nodeId
+			)
+		);
+	}, []);
+
 	const onNodesChange: OnNodesChange = useCallback(
 		(changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-		[setNodes]
+		[]
 	);
 
 	const onEdgesChange: OnEdgesChange = useCallback(
 		(changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-		[setEdges]
+		[]
 	);
 
 	const onConnect: OnConnect = useCallback(
@@ -107,80 +120,78 @@ export default function Home() {
 					processing: isProcessing,
 				},
 			};
-			console.log("Creating new edge:", newEdge);
 			setEdges((eds) => addEdge(newEdge, eds));
 		},
-		[setEdges, isProcessing]
+		[isProcessing]
 	);
 
-	const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+	const onDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
 		e.preventDefault();
-	};
+		e.dataTransfer.dropEffect = "move";
+	}, []);
 
-	const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
-		e.preventDefault();
+	const onDrop = useCallback(
+		(e: React.DragEvent<HTMLDivElement>) => {
+			e.preventDefault();
 
-		const reactFlowBounds = e.currentTarget.getBoundingClientRect();
+			const reactFlowBounds = e.currentTarget.getBoundingClientRect();
 
-		const position = {
-			x: e.clientX - reactFlowBounds.left,
-			y: e.clientY - reactFlowBounds.top,
-		};
+			// Use ReactFlow's screenToFlowPosition for proper coordinate transformation
+			const position = screenToFlowPosition({
+				x: e.clientX - reactFlowBounds.left,
+				y: e.clientY - reactFlowBounds.top,
+			});
 
-		const block = JSON.parse(
-			e.dataTransfer.getData("application/reactflow")
-		);
+			try {
+				const block = JSON.parse(
+					e.dataTransfer.getData("application/reactflow")
+				);
 
-		const newNode = {
-			id: `${block.type}-${Date.now()}`,
-			type: block.type,
-			position,
-			data: {
-				label: block.title,
-				description: block.description,
-				icon: block.icon,
-				color: block.color,
-				blockType: block.type,
-				onDelete: (nodeId: string) => {
-					setNodes((nds) => nds.filter((node) => node.id !== nodeId));
-					setEdges((eds) =>
-						eds.filter(
-							(edge) =>
-								edge.source !== nodeId && edge.target !== nodeId
-						)
-					);
-				},
-			},
-		};
+				const newNode: Node = {
+					id: `${block.type}-${Date.now()}`,
+					type: block.type,
+					position,
+					data: {
+						label: block.title,
+						description: block.description,
+						icon: block.icon,
+						color: block.color,
+						blockType: block.type,
+						onDelete: deleteNode,
+					},
+				};
 
-		setNodes((prev) => [...prev, newNode]);
-	};
+				setNodes((prev) => [...prev, newNode]);
+			} catch (error) {
+				console.error("Error parsing dropped data:", error);
+			}
+		},
+		[screenToFlowPosition, deleteNode]
+	);
 
-	const exportConnections = () => {
+	const exportConnections = useCallback(() => {
 		const nodeConnections = nodes.map((node) => {
 			const incomingConnections = edges
 				.filter((edge) => edge.target === node.id)
-				.map((edge) => ({
-					sourceNodeId: edge.source,
-					sourceNodeType:
-						nodes.find((n) => n.id === edge.source)?.type ||
-						"unknown",
-					sourceNodeLabel:
-						nodes.find((n) => n.id === edge.source)?.data?.label ||
-						"Unknown",
-				}));
+				.map((edge) => {
+					const sourceNode = nodes.find((n) => n.id === edge.source);
+					return {
+						sourceNodeId: edge.source,
+						sourceNodeType: sourceNode?.type || "unknown",
+						sourceNodeLabel: sourceNode?.data?.label || "Unknown",
+					};
+				});
 
 			const outgoingConnections = edges
 				.filter((edge) => edge.source === node.id)
-				.map((edge) => ({
-					targetNodeId: edge.target,
-					targetNodeType:
-						nodes.find((n) => n.id === edge.target)?.type ||
-						"unknown",
-					targetNodeLabel:
-						nodes.find((n) => n.id === edge.target)?.data?.label ||
-						"Unknown",
-				}));
+				.map((edge) => {
+					const targetNode = nodes.find((n) => n.id === edge.target);
+					return {
+						targetNodeId: edge.target,
+						targetNodeType: targetNode?.type || "unknown",
+						targetNodeLabel: targetNode?.data?.label || "Unknown",
+					};
+				});
 
 			return {
 				nodeId: node.id,
@@ -200,17 +211,17 @@ export default function Home() {
 				timestamp: new Date().toISOString(),
 			},
 			nodeConnections,
-			rawEdges: edges.map((edge) => ({
-				id: edge.id,
-				source: edge.source,
-				target: edge.target,
-				sourceLabel:
-					nodes.find((n) => n.id === edge.source)?.data?.label ||
-					"Unknown",
-				targetLabel:
-					nodes.find((n) => n.id === edge.target)?.data?.label ||
-					"Unknown",
-			})),
+			rawEdges: edges.map((edge) => {
+				const sourceNode = nodes.find((n) => n.id === edge.source);
+				const targetNode = nodes.find((n) => n.id === edge.target);
+				return {
+					id: edge.id,
+					source: edge.source,
+					target: edge.target,
+					sourceLabel: sourceNode?.data?.label || "Unknown",
+					targetLabel: targetNode?.data?.label || "Unknown",
+				};
+			}),
 		};
 
 		navigator.clipboard
@@ -219,70 +230,77 @@ export default function Home() {
 				alert(
 					"Connections JSON copied to clipboard! Also check the console for detailed view."
 				);
+				console.log("Exported connections:", connectionsData);
 			})
 			.catch((err) => {
 				console.error("Failed to copy to clipboard:", err);
+				console.log("Connections data:", connectionsData);
 				alert(
 					"Connections JSON logged to console. Please copy from there."
 				);
 			});
-	};
+	}, [nodes, edges]);
 
-	const edgeTypes = {
-		custom: CustomEdge,
-	};
+	return (
+		<div className="flex-1 overflow-auto mt-2 relative">
+			<ReactFlow
+				nodeTypes={nodeTypes}
+				edgeTypes={edgeTypes}
+				onDragOver={onDragOver}
+				onDrop={onDrop}
+				onNodesChange={onNodesChange}
+				onEdgesChange={onEdgesChange}
+				onConnect={onConnect}
+				nodes={nodes}
+				edges={edges}
+				defaultViewport={{ x: 200, y: 100, zoom: 0.8 }}
+			>
+				<Background
+					variant={BackgroundVariant.Dots}
+					className="bg-gray-200 opacity-50"
+					gap={20}
+					size={2}
+				/>
+			</ReactFlow>
+			<div className="absolute top-5 right-5 z-10 flex items-center gap-2">
+				<Button
+					onClick={() => {
+						const newProcessingState = !isProcessing;
+						setIsProcessing(newProcessingState);
+						updateEdgesProcessing(newProcessingState);
+					}}
+					className={`${
+						isProcessing
+							? "bg-blue-600 hover:bg-blue-700"
+							: "bg-gray-600 hover:bg-gray-700"
+					} text-white flex items-center gap-2`}
+					size="sm"
+				>
+					{isProcessing ? "Processing: ON" : "Processing: OFF"}
+				</Button>
+				<Button
+					onClick={exportConnections}
+					className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+					size="sm"
+				>
+					<Copy className="w-4 h-4" />
+					Export JSON
+				</Button>
+			</div>
+		</div>
+	);
+}
 
+export default function Home() {
 	return (
 		<div className="w-full max-h-[calc(100svh-4rem)] relative flex overflow-hidden">
 			<SidebarProvider className="h-full w-fit">
 				<LeftWorkspaceSidebar />
 			</SidebarProvider>
 
-			<div className="flex-1 overflow-auto mt-2 relative">
-				<ReactFlow
-					nodeTypes={nodeTypes}
-					edgeTypes={edgeTypes}
-					onDragOver={onDragOver}
-					onDrop={onDrop}
-					onNodesChange={onNodesChange}
-					onEdgesChange={onEdgesChange}
-					onConnect={onConnect}
-					nodes={nodes}
-					edges={edges}
-					defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-				>
-					<Background
-						variant={BackgroundVariant.Dots}
-						gap={12}
-						size={0.5}
-					/>
-				</ReactFlow>
-				<div className="absolute top-5 right-5 z-10 flex items-center gap-2">
-					<Button
-						onClick={() => {
-							const newProcessingState = !isProcessing;
-							setIsProcessing(newProcessingState);
-							updateEdgesProcessing(newProcessingState);
-						}}
-						className={`${
-							isProcessing
-								? "bg-blue-600 hover:bg-blue-700"
-								: "bg-gray-600 hover:bg-gray-700"
-						} text-white flex items-center gap-2`}
-						size="sm"
-					>
-						{isProcessing ? "Processing: ON" : "Processing: OFF"}
-					</Button>
-					<Button
-						onClick={exportConnections}
-						className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
-						size="sm"
-					>
-						<Copy className="w-4 h-4" />
-						Export JSON
-					</Button>
-				</div>
-			</div>
+			<ReactFlowProvider>
+				<FlowCanvas />
+			</ReactFlowProvider>
 
 			<SidebarProvider className="h-full w-fit">
 				<RightSidebar />
