@@ -27,16 +27,9 @@ import CustomEdge from "@/components/edge/custom-edge";
 import RightWorkspaceSidebar from "@/components/sidebar/right-workspace-sidebar";
 
 function LeftWorkspaceSidebar() {
-	const { open } = useSidebar();
-
 	return (
 		<>
 			<AppSidebar />
-			<SidebarTrigger
-				className={`absolute bottom-5 left-3 z-10 transition-all duration-200 ${
-					open ? "opacity-0 pointer-events-none" : "opacity-100"
-				}`}
-			/>
 		</>
 	);
 }

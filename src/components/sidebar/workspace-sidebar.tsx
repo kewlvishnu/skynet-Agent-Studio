@@ -13,9 +13,12 @@ import { blocks } from "@/utils/constants/blocks";
 
 export default function AppSidebar() {
 	return (
-		<Sidebar className="w-60 border-r border-gray-800 absolute top-1 left-0 h-full mt-0.5 bg-background z-20">
-			<SidebarHeader className="h-14 ">
-				<div className="flex items-center px-2.5">
+		<Sidebar
+			className="w-60 border-r border-gray-800 absolute top-1 left-0 h-full mt-0.5 bg-background z-20"
+			collapsible="icon"
+		>
+			<SidebarHeader className="h-14">
+				<div className="flex items-center ml-2 w-full px-2.5 group-data-[collapsible=icon]:hidden">
 					<Search className="size-4 absolute left-8 text-muted-foreground" />
 					<Input
 						placeholder="Search..."
@@ -23,8 +26,12 @@ export default function AppSidebar() {
 					/>
 				</div>
 			</SidebarHeader>
-			<SidebarContent className="overflow-hidden">
-				<Tabs defaultValue="blocks" className="w-full h-full">
+
+			<SidebarContent className="overflow-hidden group-data-[collapsible=icon]:overflow-hidden">
+				<Tabs
+					defaultValue="blocks"
+					className="w-full h-full group-data-[collapsible=icon]:hidden"
+				>
 					<div className="w-full border-b border-gray-800 relative h-10">
 						<TabsList className="w-fit bg-transparent py-0 my-0 absolute left-3 top-[5px] flex items-center gap-x-6">
 							<TabsTrigger
@@ -83,8 +90,15 @@ export default function AppSidebar() {
 					</div>
 				</Tabs>
 			</SidebarContent>
+
 			<SidebarFooter className="h-16 border-t border-gray-800 z-50 bg-background">
-				<SidebarTrigger className="ml-auto size-8 z-50" />
+				<div className="flex items-center justify-between p-2 group-data-[collapsible=icon]:hidden">
+					<SidebarTrigger className="size-8" />
+				</div>
+
+				<div className="hidden group-data-[collapsible=icon]:flex items-center justify-center p-2">
+					<SidebarTrigger className="size-8" />
+				</div>
 			</SidebarFooter>
 		</Sidebar>
 	);
