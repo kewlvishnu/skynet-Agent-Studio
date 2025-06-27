@@ -140,23 +140,56 @@ function FlowCanvas() {
 			});
 
 			try {
-				const block = JSON.parse(
+				const droppedData = JSON.parse(
 					e.dataTransfer.getData("application/reactflow")
 				);
 
-				const newNode: Node = {
-					id: `${block.type}-${Date.now()}`,
-					type: block.type,
-					position,
-					data: {
-						label: block.title,
-						description: block.description,
-						icon: block.icon,
-						color: block.color,
-						blockType: block.type,
-						onDelete: deleteNode,
-					},
-				};
+				let newNode: Node;
+
+				// Check if it's a tool/subnet (has unique_id and subnet_name)
+				if (droppedData.unique_id && droppedData.subnet_name) {
+					newNode = {
+						id: `tool-${Date.now()}`,
+						type: "tool",
+						position,
+						data: {
+							label: droppedData.subnet_name,
+							subnet_name: droppedData.subnet_name,
+							description: droppedData.description,
+							unique_id: droppedData.unique_id,
+							onDelete: deleteNode,
+						},
+					};
+				}
+				// Check if it's an agent (has name and id)
+				else if (droppedData.name && droppedData.id) {
+					newNode = {
+						id: `agent-${Date.now()}`,
+						type: "agent",
+						position,
+						data: {
+							label: droppedData.name,
+							description: droppedData.description,
+							onDelete: deleteNode,
+						},
+					};
+				}
+				// Otherwise it's a block
+				else {
+					newNode = {
+						id: `${droppedData.type}-${Date.now()}`,
+						type: droppedData.type,
+						position,
+						data: {
+							label: droppedData.title,
+							description: droppedData.description,
+							icon: droppedData.icon,
+							color: droppedData.color,
+							blockType: droppedData.type,
+							onDelete: deleteNode,
+						},
+					};
+				}
 
 				setNodes((prev) => [...prev, newNode]);
 			} catch (error) {

@@ -9,6 +9,7 @@ import WorkflowNode from "./blocks/workflow";
 import LoopNode from "./blocks/loop";
 import ParallelNode from "./blocks/parallel";
 import StartNode from "./blocks/start";
+import ToolNode from "./blocks/tool";
 
 export const nodeTypes = {
 	start: StartNode,
@@ -22,4 +23,5 @@ export const nodeTypes = {
 	workflow: WorkflowNode,
 	loop: LoopNode,
 	parallel: ParallelNode,
+	tool: ToolNode,
 };
