@@ -256,7 +256,7 @@
 	width: 4px;
 }
 ::-webkit-scrollbar-thumb {
-	@apply bg-gray-700 rounded-full;
+	@apply bg-gray rounded-full;
 }
 ::-webkit-scrollbar-track {
 	background: transparent;

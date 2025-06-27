@@ -15,7 +15,9 @@ export const getSubnets = async (params?: {
 	return response.data;
 };
 
-export const getSubnetById = async (id: string): Promise<SubnetResponse> => {
+export const getSubnetById = async (
+	id: string
+): Promise<SubnetDetailResponse> => {
 	const response = await axiosInstance.get(`/subnets/${id}`);
 	return response.data;
 };

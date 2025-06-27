@@ -27,6 +27,8 @@ import { Copy } from "lucide-react";
 import CustomEdge from "@/components/edge/custom-edge";
 import RightWorkspaceSidebar from "@/components/sidebar/right-workspace-sidebar";
 import WorkspaceSidebar from "@/components/sidebar/workspace-sidebar";
+import { getSubnetById } from "@/controllers/subnets/subnets.queries";
+import { getAgentById } from "@/controllers/agents/agents.queries";
 
 const edgeTypes = {
 	custom: CustomEdge,
@@ -131,7 +133,7 @@ function FlowCanvas() {
 	}, []);
 
 	const onDrop = useCallback(
-		(e: React.DragEvent<HTMLDivElement>) => {
+		async (e: React.DragEvent<HTMLDivElement>) => {
 			e.preventDefault();
 
 			const position = screenToFlowPosition({
@@ -146,33 +148,186 @@ function FlowCanvas() {
 
 				let newNode: Node;
 
-				// Check if it's a tool/subnet (has unique_id and subnet_name)
 				if (droppedData.unique_id && droppedData.subnet_name) {
-					newNode = {
-						id: `tool-${Date.now()}`,
+					const nodeId = `tool-${Date.now()}`;
+
+					const initialNode: Node = {
+						id: nodeId,
 						type: "tool",
 						position,
 						data: {
-							label: droppedData.subnet_name,
-							subnet_name: droppedData.subnet_name,
-							description: droppedData.description,
-							unique_id: droppedData.unique_id,
+							...droppedData,
 							onDelete: deleteNode,
 						},
 					};
-				}
-				// Check if it's an agent (has name and id)
-				else if (droppedData.name && droppedData.id) {
-					newNode = {
-						id: `agent-${Date.now()}`,
+
+					console.log({
+						...droppedData,
+					});
+
+					setNodes((prev) => [...prev, initialNode]);
+
+					try {
+						const detailedResponse = await getSubnetById(
+							droppedData.unique_id
+						);
+						if (detailedResponse.success) {
+							const toolDetail = detailedResponse.data;
+
+							setNodes((prev) =>
+								prev.map((node) =>
+									node.id === nodeId
+										? {
+												...node,
+												data: {
+													...node.data,
+													...toolDetail,
+													onDelete: deleteNode,
+												},
+										  }
+										: node
+								)
+							);
+						} else {
+							setNodes((prev) =>
+								prev.map((node) =>
+									node.id === nodeId
+										? {
+												...node,
+												data: {
+													...node.data,
+													description:
+														"Failed to load tool details",
+													isLoading: false,
+													error: true,
+												},
+										  }
+										: node
+								)
+							);
+						}
+					} catch (error) {
+						console.error("Error fetching tool details:", error);
+
+						setNodes((prev) =>
+							prev.map((node) =>
+								node.id === nodeId
+									? {
+											...node,
+											data: {
+												...node.data,
+												description:
+													"Failed to load tool details",
+												isLoading: false,
+												error: true,
+											},
+									  }
+									: node
+							)
+						);
+					}
+					return;
+				} else if (droppedData.name && droppedData.id) {
+					const nodeId = `agent-${Date.now()}`;
+
+					// Create initial node with loading state
+					const initialNode: Node = {
+						id: nodeId,
 						type: "agent",
 						position,
 						data: {
 							label: droppedData.name,
-							description: droppedData.description,
+							description: "Loading agent details...",
+							isLoading: true,
 							onDelete: deleteNode,
 						},
 					};
+
+					setNodes((prev) => [...prev, initialNode]);
+
+					// Fetch detailed information
+					try {
+						const detailedResponse = await getAgentById(
+							droppedData.id
+						);
+						if (detailedResponse.success) {
+							const agentDetail = detailedResponse.data;
+
+							// Update the node with detailed information
+							setNodes((prev) =>
+								prev.map((node) =>
+									node.id === nodeId
+										? {
+												...node,
+												data: {
+													...node.data,
+													label: agentDetail.name,
+													description:
+														agentDetail.description,
+													subnet_list:
+														agentDetail.subnet_list,
+													user_address:
+														agentDetail.user_address,
+													layout: agentDetail.layout,
+													is_deployed:
+														agentDetail.is_deployed,
+													ipfs_hash:
+														agentDetail.ipfs_hash,
+													collection_id:
+														agentDetail.collection_id,
+													nft_address:
+														agentDetail.nft_address,
+													created_at:
+														agentDetail.created_at,
+													updated_at:
+														agentDetail.updated_at,
+													isLoading: false,
+													onDelete: deleteNode,
+												},
+										  }
+										: node
+								)
+							);
+						} else {
+							// Handle API error
+							setNodes((prev) =>
+								prev.map((node) =>
+									node.id === nodeId
+										? {
+												...node,
+												data: {
+													...node.data,
+													description:
+														"Failed to load agent details",
+													isLoading: false,
+													error: true,
+												},
+										  }
+										: node
+								)
+							);
+						}
+					} catch (error) {
+						console.error("Error fetching agent details:", error);
+						// Update node with error state
+						setNodes((prev) =>
+							prev.map((node) =>
+								node.id === nodeId
+									? {
+											...node,
+											data: {
+												...node.data,
+												description:
+													"Failed to load agent details",
+												isLoading: false,
+												error: true,
+											},
+									  }
+									: node
+							)
+						);
+					}
+					return; // Early return to avoid creating newNode below
 				}
 				// Otherwise it's a block
 				else {
@@ -189,9 +344,9 @@ function FlowCanvas() {
 							onDelete: deleteNode,
 						},
 					};
-				}
 
-				setNodes((prev) => [...prev, newNode]);
+					setNodes((prev) => [...prev, newNode]);
+				}
 			} catch (error) {
 				console.error("Error parsing dropped data:", error);
 			}
