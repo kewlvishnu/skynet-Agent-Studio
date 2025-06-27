@@ -30,6 +30,7 @@ export interface HeaderProps
 	icon?: React.ReactNode;
 	title?: string;
 	subtitle?: string;
+	rightSideActions?: React.ReactNode;
 	actions?: React.ReactNode;
 	titleClassName?: string;
 	subtitleClassName?: string;
@@ -47,6 +48,7 @@ const Header = React.forwardRef<HTMLDivElement, HeaderProps>(
 			title,
 			subtitle,
 			actions,
+			rightSideActions,
 			titleClassName,
 			subtitleClassName,
 			leftSideClassName,
@@ -97,6 +99,9 @@ const Header = React.forwardRef<HTMLDivElement, HeaderProps>(
 							)}
 						</div>
 					)}
+					<div className="flex items-center gap-2">
+						{rightSideActions}
+					</div>
 				</div>
 
 				{/* Right Side Actions */}
