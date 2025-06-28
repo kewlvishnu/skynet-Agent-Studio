@@ -57,6 +57,7 @@ interface ToolNodeProps {
 		subnet_url?: string;
 		expected_input?: string | null;
 		expected_output?: string | null;
+		system_prompt?: string | null;
 	};
 }
 
@@ -175,11 +176,22 @@ export default function ToolNode({ id, data }: ToolNodeProps) {
 					{data.prompt_example && (
 						<div className="space-y-1 flex-1 flex flex-col">
 							<Label className="text-sm font-medium text-foreground">
-								Prompt Example
+								Prompt
 							</Label>
 							<Textarea
-								value={data.prompt_example}
-								readOnly
+								value={data.prompt}
+								className="resize-none flex-1 min-h-[100px] bg-background/50 border border-border text-foreground focus-visible:ring-0 focus-visible:ring-none"
+							/>
+						</div>
+					)}
+
+					{data.prompt_example && (
+						<div className="space-y-1 flex-1 flex flex-col">
+							<Label className="text-sm font-medium text-foreground">
+								Rules
+							</Label>
+							<Textarea
+								value={data?.system_prompt || ""}
 								className="resize-none flex-1 min-h-[100px] bg-background/50 border border-border text-foreground focus-visible:ring-0 focus-visible:ring-none"
 							/>
 						</div>

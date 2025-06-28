@@ -18,6 +18,10 @@ export const getSubnets = async (params?: {
 export const getSubnetById = async (
 	id: string
 ): Promise<SubnetDetailResponse> => {
-	const response = await axiosInstance.get(`/subnets/${id}`);
-	return response.data;
+	const response = (await axiosInstance.get(`/subnets/${id}`)).data;
+	if (response.success) {
+		response.data.system_prompt = "";
+		response.data.prompt = response?.data?.prompt_example;
+	}
+	return response;
 };
