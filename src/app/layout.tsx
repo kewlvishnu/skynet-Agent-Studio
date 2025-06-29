@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
+import ClientProviders from "@/providers/ClientProviders";
 
 const switzer = localFont({
 	src: [
@@ -39,14 +40,16 @@ export default function RootLayout({
 			<body
 				className={`${switzer.variable} ${clashDisplay.variable} antialiased`}
 			>
-				<ThemeProvider
-					attribute="class"
-					defaultTheme="system"
-					enableSystem
-					disableTransitionOnChange
-				>
-					{children}
-				</ThemeProvider>
+				<ClientProviders>
+					<ThemeProvider
+						attribute="class"
+						defaultTheme="system"
+						enableSystem
+						disableTransitionOnChange
+					>
+						{children}
+					</ThemeProvider>
+				</ClientProviders>
 			</body>
 		</html>
 	);

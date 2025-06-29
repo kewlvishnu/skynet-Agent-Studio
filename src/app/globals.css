@@ -49,7 +49,7 @@
 		--secondary-gray-blue-active: 220 3% 73%; /* #b6b7ba */
 
 		/* Legacy Variables */
-		--bg: 0 0% 100%; /* #FFFFFF */
+		--bg: 210 7% 95%; /* #f0f1f2 */
 		--text: 222 18% 8%; /* #0F1115 */
 		--primary-color: 225 80% 53%; /* #2c5ae1 - Royal Blue */
 		--secondary-color: 225 25% 12%; /* #121620 - Eerie Black */
@@ -57,7 +57,7 @@
 		--border-color: 220 17% 89%; /* #E1E3E8 */
 		--muted-color: 228 5% 63%; /* #9A9CA4 */
 
-		--background: 0 0% 100%;
+		--background:210 7% 95%;
 		--foreground: 222 18% 8%;
 		--card: 0 0% 100%;
 		--card-foreground: 0 0% 3.9%;
