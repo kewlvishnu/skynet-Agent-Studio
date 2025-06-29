@@ -59,9 +59,12 @@ const Header = React.forwardRef<HTMLDivElement, HeaderProps>(
 	) => {
 		return (
 			<div
-				className={cn(headerVariants({ size, spacing, className }))}
 				ref={ref}
 				{...props}
+				className={cn(
+					"flex items-center justify-between p-4 border-b border-gray w-full",
+					headerVariants({ size, spacing, className })
+				)}
 			>
 				{/* Left Side */}
 				<div

@@ -1,5 +1,6 @@
 import React from "react";
 import { Header } from "../common/header";
+import AuthButton from "../common/auth-button";
 // import { Input } from "../ui/input";
 
 export default function wrapper({ children }: { children: React.ReactNode }) {
@@ -9,6 +10,7 @@ export default function wrapper({ children }: { children: React.ReactNode }) {
 				title="Workflow"
 				subtitle="Saved about 2 hours ago"
 				// rightSideActions={<Input placeholder="Search" />}
+				actions={<AuthButton />}
 			/>
 			<div className="flex-1 h-full bg-background relative">
 				{children}
