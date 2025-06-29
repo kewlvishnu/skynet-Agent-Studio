@@ -2,6 +2,12 @@ import { useEffect, useState, useCallback } from "react";
 
 const ITEMS_PER_PAGE = 10;
 
+interface PaginationState {
+	currentPage: number;
+	hasMore: boolean;
+	isLoading: boolean;
+}
+
 export const usePaginatedData = <T extends { data: Record<string, unknown> }>(
 	fetchFunction: (params: { offset: number; limit: number }) => Promise<T>,
 	getItemsArray: (data: T) => unknown[]
@@ -75,7 +81,7 @@ export const usePaginatedData = <T extends { data: Record<string, unknown> }>(
 
 	useEffect(() => {
 		fetchData(pagination.currentPage);
-	}, [pagination.currentPage]);
+	}, [fetchData, pagination.currentPage]);
 
 	return { data, ...pagination, loadMore, reset };
 };
