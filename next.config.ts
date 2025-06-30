@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
-	webpack: (config: any) => {
+	webpack: (config) => {
 		// Enable WebAssembly
 		config.experiments = {
 			asyncWebAssembly: true,
@@ -13,6 +13,12 @@ const nextConfig = {
 			test: /\.wasm$/,
 			type: "webassembly/async",
 		});
+
+		// Add path alias configuration
+		config.resolve.alias = {
+			...config.resolve.alias,
+			"@": "./src",
+		};
 
 		return config;
 	},
