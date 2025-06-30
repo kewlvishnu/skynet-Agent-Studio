@@ -3,7 +3,11 @@ import { Header } from "../common/header";
 import AuthButton from "../common/auth-button";
 // import { Input } from "../ui/input";
 
-export default function wrapper({ children }: { children: React.ReactNode }) {
+export default function WorkflowWrapper({
+	children,
+}: {
+	children: React.ReactNode;
+}) {
 	return (
 		<div className="flex flex-col h-full w-full relative">
 			<Header
