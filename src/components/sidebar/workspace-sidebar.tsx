@@ -215,7 +215,7 @@ export default function WorkspaceSidebar() {
 								<TabsTrigger
 									key={item.name}
 									value={item.value}
-									className="w-fit text-sm border-b-4 px-0 pb-1 border-transparent bg-transparent rounded-none data-[state=active]:border-b-4 data-[state=active]:border-eerie-black/70 transition-all duration-200 ease-in-out"
+									className="w-fit text-sm border-b-4 px-0 pb-1 border-transparent bg-transparent rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-4 data-[state=active]:border-eerie-black/70 transition-all duration-200 ease-in-out"
 								>
 									{item.name}
 								</TabsTrigger>

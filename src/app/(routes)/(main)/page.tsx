@@ -487,7 +487,12 @@ export default function Home() {
 				<FlowCanvas />
 			</ReactFlowProvider>
 
-			<SidebarProvider className="h-full w-fit">
+			<SidebarProvider
+				className="h-full w-fit"
+				style={{
+					"--sidebar-width": "22rem",
+				} as React.CSSProperties}
+			>
 				<RightSidebar />
 			</SidebarProvider>
 		</div>
