@@ -4,9 +4,10 @@
 	"private": true,
 	"scripts": {
 		"dev": "next dev",
-		"build": "npm install --legacy-peer-deps && next build",
-		"start": "npm install --legacy-peer-deps && next start",
-		"lint": "next lint"
+		"build": "next build",
+		"start": "next start",
+		"lint": "next lint",
+		"postinstall": "npm install --legacy-peer-deps || true"
 	},
 	"dependencies": {
 		"@decloudlabs/skynet": "^0.6.28",

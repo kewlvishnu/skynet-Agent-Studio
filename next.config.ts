@@ -1,7 +1,7 @@
-/** @type {import('next').NextConfig} */
+import type { NextConfig } from "next";
 
-const nextConfig = {
-	webpack: (config) => {
+const nextConfig: NextConfig = {
+	webpack: (config, { isServer }) => {
 		// Enable WebAssembly
 		config.experiments = {
 			asyncWebAssembly: true,
@@ -14,16 +14,15 @@ const nextConfig = {
 			type: "webassembly/async",
 		});
 
-		// Add path alias configuration
-		config.resolve.alias = {
-			...config.resolve.alias,
-			"@": "./src",
-		};
-
 		return config;
 	},
 	// Enable standalone output for Docker
 	output: "standalone",
+	// Ensure proper module resolution
+	transpilePackages: [],
+	experimental: {
+		esmExternals: "loose",
+	},
 };
 
-module.exports = nextConfig;
+export default nextConfig;
