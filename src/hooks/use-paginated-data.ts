@@ -75,7 +75,7 @@ export const usePaginatedData = <T extends { data: Record<string, unknown> }>(
 
 	useEffect(() => {
 		fetchData(pagination.currentPage);
-	}, [pagination.currentPage]);
+	}, [pagination.currentPage, fetchData]);
 
 	return { data, ...pagination, loadMore, reset };
 };

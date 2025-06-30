@@ -7,8 +7,6 @@ import {
   useState,
 } from "react";
 import {
-  ContractTransactionResponse,
-  ContractTransactionReceipt,
   ethers,
 } from "ethers";
 import { CONNECT_STATES, Web3Context } from "./Web3ContextProvider";
@@ -17,39 +15,9 @@ import SkyBrowserSigner from "@decloudlabs/skynet/lib/services/SkyBrowserSigner"
 import SkyEtherContractService from "@decloudlabs/skynet/lib/services/SkyEtherContractService";
 import toast from "react-hot-toast";
 import {
-  APICallReturn,
-  APIResponse,
-  ContractAddresses,
-  SkyContractService,
   SkyEnvConfigBrowser,
 } from "@decloudlabs/skynet/lib/types/types";
 import { useWeb3Auth } from "@web3auth/modal-react-hooks";
-import {
-  AppManager,
-  BalanceSettler,
-  BalanceStore,
-  CollectionNFT,
-  NFT,
-  NFTRoles,
-  ERC20,
-  Subscription,
-  SecondsCostCalculator,
-  NFTMinter,
-  NFTRoles__factory,
-  Subscription__factory,
-  NFTMinter__factory,
-  ERC20__factory,
-  SecondsCostCalculator__factory,
-  AppManager__factory,
-  BalanceSettler__factory,
-  CollectionNFT__factory,
-  NFT__factory,
-  BalanceStore__factory,
-  NFTFactory,
-  NFTFactory__factory,
-} from "@decloudlabs/skynet/lib/types/contracts";
-import { chainContracts } from "@decloudlabs/skynet/lib/utils/constants";
-import { apiCallWrapper } from "@decloudlabs/skynet/lib/utils/utils";
 
 interface AppCryptoConfig {
   skyBrowser: SkyMainBrowser | null;

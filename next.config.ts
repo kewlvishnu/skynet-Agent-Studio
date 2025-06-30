@@ -1,23 +1,7 @@
-/** @type {import('next').NextConfig} */
+import type { NextConfig } from "next";
 
-const nextConfig = {
-	webpack: (config: any) => {
-		// Enable WebAssembly
-		config.experiments = {
-			asyncWebAssembly: true,
-			layers: true,
-		};
-
-		// Handle .wasm files
-		config.module.rules.push({
-			test: /\.wasm$/,
-			type: "webassembly/async",
-		});
-
-		return config;
-	},
-	// Enable standalone output for Docker
-	output: "standalone",
+const nextConfig: NextConfig = {
+  /* config options here */
 };
 
-module.exports = nextConfig;
+export default nextConfig;

@@ -5,7 +5,6 @@ import AuthButton from "@/components/common/auth-button";
 import { CONNECT_STATES, Web3Context } from "@/providers/Web3ContextProvider";
 import React, { useContext } from "react";
 import Navbar from "@/components/sidebar/navbar";
-import Spline from "@splinetool/react-spline/next";
 import Image from "next/image";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
