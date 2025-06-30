@@ -20,7 +20,7 @@ export default function Navbar({ className }: NavbarProps) {
 	];
 
 	return (
-		<div className="flex w-full max-w-7xl mx-auto h-16 bg-bg">
+		<div className="flex w-full max-w-7xl mx-auto h-16">
 			<div className="-mr-[1px]">
 				<svg
 					width="57"
@@ -31,13 +31,13 @@ export default function Navbar({ className }: NavbarProps) {
 				>
 					<path
 						d="M0.367188 0.567871H56.092V53.5917C50.3839 12.48 21.1423 3.60023 0.367188 0.567871Z"
-						fill="white"
+						className="fill-white dark:fill-background"
 					/>
 				</svg>
 			</div>
 			<nav
 				className={cn(
-					"flex items-center justify-between p-4 bg-white w-full rounded-b-lg",
+					"flex items-center justify-between p-4 bg-white dark:bg-background w-full rounded-b-lg",
 					className
 				)}
 			>
@@ -123,7 +123,7 @@ export default function Navbar({ className }: NavbarProps) {
 				>
 					<path
 						d="M56.0938 0.567871H0.368935V53.5917C6.07703 12.48 35.3186 3.60023 56.0938 0.567871Z"
-						fill="white"
+						className="fill-white dark:fill-background"
 					/>
 				</svg>
 			</div>
