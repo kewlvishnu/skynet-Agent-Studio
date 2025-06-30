@@ -11,7 +11,7 @@ export default function RightWorkspaceSidebar() {
 	return (
 		<Sidebar
 			side="right"
-			className="w-60 border-r border-gray absolute top-0 right-0 h-full bg-background z-20"
+			className="w-64 border-r border-gray absolute top-0 right-0 h-full bg-background z-20"
 		>
 			<SidebarContent className="overflow-hidden">
 				<Tabs

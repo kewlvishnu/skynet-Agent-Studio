@@ -139,7 +139,7 @@ export default {
 				},
 
 				// Legacy Theme Colors
-				background: "var(--background)",
+				background: "hsl(var(--background))",
 				foreground: "hsl(var(--foreground))",
 				card: {
 					DEFAULT: "hsl(var(--card))",
@@ -180,7 +180,7 @@ export default {
 					"5": "hsl(var(--chart-5))",
 				},
 				sidebar: {
-					DEFAULT: "var(--sidebar-background)",
+					DEFAULT: "hsl(var(--sidebar-background))",
 					foreground: "hsl(var(--sidebar-foreground))",
 					primary: "hsl(var(--sidebar-primary))",
 					"primary-foreground":

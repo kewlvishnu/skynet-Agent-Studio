@@ -37,7 +37,7 @@ export default function Navbar({ className }: NavbarProps) {
 			</div>
 			<nav
 				className={cn(
-					"flex items-center justify-between p-4 bg-white dark:bg-background w-full rounded-b-lg",
+					"flex items-center justify-between p-4 dark:bg-background bg-white w-full rounded-b-lg",
 					className
 				)}
 			>
@@ -48,14 +48,7 @@ export default function Navbar({ className }: NavbarProps) {
 							alt="Skynet logo"
 							width={1000}
 							height={1000}
-							className="w-auto h-6 dark:hidden"
-						/>
-						<Image
-							src="/logo/full-logo-dark.svg"
-							alt="Skynet logo"
-							width={1000}
-							height={1000}
-							className="w-auto h-6 hidden dark:block"
+							className="w-auto h-6 dark:invert"
 						/>
 					</div>
 				</div>

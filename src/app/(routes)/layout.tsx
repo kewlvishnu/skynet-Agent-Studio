@@ -28,7 +28,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 							alt="Skynet logo"
 							width={1000}
 							height={1000}
-							className="w-auto h-60 dark:hidden"
+							className="w-auto h-60 dark:invert"
 						/>
 						<AuthButton className="w-full h-10 max-w-40" />
 					</div>

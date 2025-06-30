@@ -1,5 +1,11 @@
 "use client";
-import { Bot, LibraryBig, ScrollText, Settings } from "lucide-react";
+import {
+	Bot,
+	LibraryBig,
+	LogOutIcon,
+	ScrollText,
+	Settings,
+} from "lucide-react";
 
 import {
 	Sidebar,
@@ -90,13 +96,15 @@ export function AppSidebar() {
 				</SidebarGroup>
 			</SidebarContent>
 			<SidebarFooter>
-				<div className="flex items-center justify-between p-2 group-data-[collapsible=icon]:hidden">
-					<SidebarTrigger />
-					<ThemeToggleSimple />
-				</div>
-				<div className="hidden group-data-[collapsible=icon]:flex flex-col-reverse items-center gap-2 p-2">
-					<SidebarTrigger />
-					<ThemeToggleSimple />
+				<div>
+					<div className="flex items-center justify-between p-2 group-data-[collapsible=icon]:hidden">
+						<SidebarTrigger />
+						<ThemeToggleSimple />
+					</div>
+					<div className="hidden group-data-[collapsible=icon]:flex flex-col-reverse items-center gap-2 p-2">
+						<SidebarTrigger />
+						<ThemeToggleSimple />
+					</div>
 				</div>
 			</SidebarFooter>
 		</Sidebar>
