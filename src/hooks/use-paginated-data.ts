@@ -6,6 +6,7 @@ interface PaginationState {
 	currentPage: number;
 	hasMore: boolean;
 	isLoading: boolean;
+	error: Error | null;
 }
 
 export const usePaginatedData = <T extends { data: Record<string, unknown> }>(
@@ -17,6 +18,7 @@ export const usePaginatedData = <T extends { data: Record<string, unknown> }>(
 		currentPage: 0,
 		hasMore: true,
 		isLoading: false,
+		error: null,
 	});
 
 	const fetchData = useCallback(
@@ -54,7 +56,11 @@ export const usePaginatedData = <T extends { data: Record<string, unknown> }>(
 				}));
 			} catch (error) {
 				console.error("Error fetching data:", error);
-				setPagination((prev) => ({ ...prev, isLoading: false }));
+				setPagination((prev) => ({
+					...prev,
+					isLoading: false,
+					error: error as Error,
+				}));
 			}
 		},
 		[fetchFunction, getItemsArray]
@@ -75,7 +81,12 @@ export const usePaginatedData = <T extends { data: Record<string, unknown> }>(
 
 	const reset = useCallback(() => {
 		setData(undefined);
-		setPagination({ currentPage: 0, hasMore: true, isLoading: false });
+		setPagination({
+			currentPage: 0,
+			hasMore: true,
+			isLoading: false,
+			error: null,
+		});
 		fetchData(0);
 	}, [fetchData]);
 

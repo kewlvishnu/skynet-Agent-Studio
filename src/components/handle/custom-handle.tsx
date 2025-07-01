@@ -13,17 +13,28 @@ export const CustomHandle = ({
 		style={{
 			background: "#B8C1CC",
 			border: "1px solid #B8C1CC",
-			width: "8px",
-			height: "45px",
+			width:
+				handleProps.position === Position.Top ||
+				handleProps.position === Position.Bottom
+					? "45px"
+					: "8px",
+			height:
+				handleProps.position === Position.Top ||
+				handleProps.position === Position.Bottom
+					? "8px"
+					: "45px",
 			borderRadius: "0%",
 			position: "absolute",
-			transform: "translateX(50%, -50%)",
-			[handleProps.position === Position.Right
-				? "right"
-				: handleProps.position === Position.Left
-				? "left"
-				: "top"]:
-				handleProps.position === Position.Right ? "-2.5px" : "-2.7px",
+			zIndex: 10,
+			transform:
+				handleProps.position === Position.Top ||
+				handleProps.position === Position.Bottom
+					? "translateX(-50%)"
+					: "translateY(-50%)",
+			...(handleProps.position === Position.Right && { right: "-8px" }),
+			...(handleProps.position === Position.Left && { left: "-8px" }),
+			...(handleProps.position === Position.Bottom && { bottom: "-8px" }),
+			...(handleProps.position === Position.Top && { top: "-8px" }),
 			...customStyle,
 		}}
 	/>

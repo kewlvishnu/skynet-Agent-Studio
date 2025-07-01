@@ -80,6 +80,7 @@ export default function WorkspaceSidebar() {
 		hasMore: hasMoreTools,
 		loadMore: loadMoreTools,
 		reset: resetTools,
+		error: toolsError,
 	} = usePaginatedData(fetchSubnetsWithSearch, getSubnetsArray);
 
 	const {
@@ -88,6 +89,7 @@ export default function WorkspaceSidebar() {
 		hasMore: hasMoreAgents,
 		loadMore: loadMoreAgents,
 		reset: resetAgents,
+		error: agentsError,
 	} = usePaginatedData(fetchAgentsWithSearch, getAgentsArray);
 
 	const lastToolRef = useInfiniteScroll(
@@ -243,21 +245,29 @@ export default function WorkspaceSidebar() {
 							className="w-full h-[calc(100%-4rem)] overflow-y-auto"
 						>
 							<div className="w-[90%] mx-auto h-full gap-4 flex flex-col py-4">
-								{renderedTools}
-								{showToolsLoading && (
-									<div className="flex justify-center py-4">
-										<Loader2 className="size-4 animate-spin" />
+								{toolsError ? (
+									<div className="text-center text-destructive py-8">
+										Failed to fetch tools
 									</div>
-								)}
-								{debouncedSearchTerm && renderedTools.length === 0 && !isLoadingTools && (
-									<div className="text-center text-muted-foreground py-8">
-										No tools found for &quot;{debouncedSearchTerm}&quot;
-									</div>
-								)}
-								{isLoadingTools && !debouncedSearchTerm && (
-									<div className="flex justify-center py-4">
-										<Loader2 className="size-4 animate-spin" />
-									</div>
+								) : (
+									<>
+										{renderedTools}
+										{showToolsLoading && (
+											<div className="flex justify-center py-4">
+												<Loader2 className="size-4 animate-spin" />
+											</div>
+										)}
+										{debouncedSearchTerm && renderedTools.length === 0 && !isLoadingTools && (
+											<div className="text-center text-muted-foreground py-8">
+												No tools found for &quot;{debouncedSearchTerm}&quot;
+											</div>
+										)}
+										{isLoadingTools && !debouncedSearchTerm && (
+											<div className="flex justify-center py-4">
+												<Loader2 className="size-4 animate-spin" />
+											</div>
+										)}
+									</>
 								)}
 							</div>
 						</TabsContent>
@@ -267,21 +277,29 @@ export default function WorkspaceSidebar() {
 							className="w-full h-[calc(100%-4rem)] overflow-y-auto"
 						>
 							<div className="w-[90%] mx-auto h-full gap-4 flex flex-col py-4">
-								{renderedAgents}
-								{showAgentsLoading && (
-									<div className="flex justify-center py-4">
-										<Loader2 className="size-4 animate-spin" />
+								{agentsError ? (
+									<div className="text-center text-destructive py-8">
+										Failed to fetch agents
 									</div>
-								)}
-								{debouncedSearchTerm && renderedAgents.length === 0 && !isLoadingAgents && (
-									<div className="text-center text-muted-foreground py-8">
-										No agents found for &quot;{debouncedSearchTerm}&quot;
-									</div>
-								)}
-								{isLoadingAgents && !debouncedSearchTerm && (
-									<div className="flex justify-center py-4">
-										<Loader2 className="size-4 animate-spin" />
-									</div>
+								) : (
+									<>
+										{renderedAgents}
+										{showAgentsLoading && (
+											<div className="flex justify-center py-4">
+												<Loader2 className="size-4 animate-spin" />
+											</div>
+										)}
+										{debouncedSearchTerm && renderedAgents.length === 0 && !isLoadingAgents && (
+											<div className="text-center text-muted-foreground py-8">
+												No agents found for &quot;{debouncedSearchTerm}&quot;
+											</div>
+										)}
+										{isLoadingAgents && !debouncedSearchTerm && (
+											<div className="flex justify-center py-4">
+												<Loader2 className="size-4 animate-spin" />
+											</div>
+										)}
+									</>
 								)}
 							</div>
 						</TabsContent>
