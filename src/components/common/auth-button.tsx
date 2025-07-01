@@ -2,6 +2,7 @@ import React, { useContext } from "react";
 import { Button } from "../ui/button";
 import { CONNECT_STATES, Web3Context } from "@/providers/Web3ContextProvider";
 import { cn } from "@/lib/utils";
+import { LogOut } from "lucide-react";
 
 interface AuthButtonProps {
 	className?: string;
@@ -19,29 +20,37 @@ export default function AuthButton({ className }: AuthButtonProps) {
 
 	if (web3Context.status === CONNECT_STATES.CONNECTED) {
 		return (
-			<Button
-				variant="ghost"
-				size="sm"
-				className="flex items-center gap-2 px-3 py-2 rounded-full bg-none"
-			>
-				<div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-					<svg
-						className="w-3 h-3 text-white"
-						fill="currentColor"
-						viewBox="0 0 20 20"
-						xmlns="http://www.w3.org/2000/svg"
-					>
-						<path
-							fillRule="evenodd"
-							d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-							clipRule="evenodd"
-						/>
-					</svg>
+			<div className="flex items-center gap-2">
+				<div
+					className="flex items-center gap-2 px-3 py-2 rounded-lg bg-none"
+				>
+					<div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+						<svg
+							className="w-3 h-3 text-white"
+							fill="currentColor"
+							viewBox="0 0 20 20"
+							xmlns="http://www.w3.org/2000/svg"
+						>
+							<path
+								fillRule="evenodd"
+								d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+								clipRule="evenodd"
+							/>
+						</svg>
+					</div>
+					<span className="text-sm font-medium text-muted-foreground">
+						{truncatedAddress}
+					</span>
 				</div>
-				<span className="text-xs font-medium text-muted-foreground">
-					{truncatedAddress}
-				</span>
-			</Button>
+				<Button
+					variant="ghost"
+					size="sm"
+					className="flex items-center gap-2 px-3 py-2 rounded-lg"
+					onClick={() => web3Context.logout()}
+				>
+					<LogOut className="w-4 h-4 text-red-500" />
+				</Button>
+			</div>
 		);
 	}
 

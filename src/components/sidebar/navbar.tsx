@@ -21,23 +21,41 @@ export default function Navbar({ className }: NavbarProps) {
 
 	return (
 		<div className="flex w-full max-w-7xl mx-auto h-16">
-			<div className="-mr-[1px]">
+			<div className="-mr-[1px] z-10">
 				<svg
 					width="57"
 					height="54"
 					viewBox="0 0 57 54"
 					fill="none"
 					xmlns="http://www.w3.org/2000/svg"
+					className="z-10"
 				>
+					<defs>
+						<filter
+							id="pathShadow"
+							x="-20%"
+							y="-20%"
+							width="140%"
+							height="140%"
+						>
+							<feDropShadow
+								dx="0"
+								dy="2"
+								stdDeviation="3"
+								floodOpacity="0.1"
+							/>
+						</filter>
+					</defs>
 					<path
 						d="M0.367188 0.567871H56.092V53.5917C50.3839 12.48 21.1423 3.60023 0.367188 0.567871Z"
 						className="fill-white dark:fill-background"
+						filter="url(#pathShadow)"
 					/>
 				</svg>
 			</div>
 			<nav
 				className={cn(
-					"flex items-center justify-between p-4 dark:bg-background bg-white w-full rounded-b-lg",
+					"flex items-center justify-between p-4 dark:bg-background bg-white w-full rounded-b-lg shadow-md",
 					className
 				)}
 			>
@@ -113,10 +131,28 @@ export default function Navbar({ className }: NavbarProps) {
 					viewBox="0 0 57 54"
 					fill="none"
 					xmlns="http://www.w3.org/2000/svg"
+					className="z-10"
 				>
+					<defs>
+						<filter
+							id="pathShadow"
+							x="-20%"
+							y="-20%"
+							width="140%"
+							height="140%"
+						>
+							<feDropShadow
+								dx="-2"
+								dy="2"
+								stdDeviation="3"
+								floodOpacity="0.1"
+							/>
+						</filter>
+					</defs>
 					<path
 						d="M56.0938 0.567871H0.368935V53.5917C6.07703 12.48 35.3186 3.60023 56.0938 0.567871Z"
 						className="fill-white dark:fill-background"
+						filter="url(#pathShadow)"
 					/>
 				</svg>
 			</div>

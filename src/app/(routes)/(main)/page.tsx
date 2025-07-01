@@ -38,24 +38,21 @@ function LeftWorkspaceSidebar() {
 	return <WorkspaceSidebar />;
 }
 
-function RightSidebar() {
-	const { open } = useSidebar();
-
+function RightSidebar({
+	onWidthChange,
+}: {
+	onWidthChange?: (width: number) => void;
+}) {
 	return (
 		<>
-			<RightWorkspaceSidebar />
-			<SidebarTrigger
-				className={`absolute bottom-5 right-3 z-10 transition-all duration-200 ${
-					open ? "opacity-0 pointer-events-none" : "opacity-100"
-				}`}
-			/>
+			<RightWorkspaceSidebar onWidthChange={onWidthChange} />
 		</>
 	);
 }
 
-function FlowCanvas() {
+function FlowCanvas({ rightSidebarWidth }: { rightSidebarWidth: number }) {
 	const { screenToFlowPosition } = useReactFlow();
-
+	const { open } = useSidebar();
 	const [nodes, setNodes] = useState<Node[]>([
 		{
 			id: "1",
@@ -447,7 +444,12 @@ function FlowCanvas() {
 					size={2}
 				/>
 			</ReactFlow>
-			<div className="absolute top-5 right-5 z-10 flex items-center gap-2">
+			<div
+				className="absolute top-5 z-10 flex items-center gap-2 transition-all duration-300"
+				style={{
+					right: rightSidebarWidth > 0 ? `${rightSidebarWidth - 200}px` : '20px',
+				}}
+			>
 				<Button
 					onClick={() => {
 						const newProcessingState = !isProcessing;
@@ -477,6 +479,12 @@ function FlowCanvas() {
 }
 
 export default function Home() {
+	const [rightSidebarWidth, setRightSidebarWidth] = useState(0);
+
+	const handleRightSidebarWidthChange = useCallback((width: number) => {
+		setRightSidebarWidth(width);
+	}, []);
+
 	return (
 		<div className="w-full max-h-[calc(100svh-4rem)] relative flex overflow-hidden">
 			<SidebarProvider className="h-full w-fit">
@@ -484,16 +492,11 @@ export default function Home() {
 			</SidebarProvider>
 
 			<ReactFlowProvider>
-				<FlowCanvas />
+				<FlowCanvas rightSidebarWidth={rightSidebarWidth} />
 			</ReactFlowProvider>
 
-			<SidebarProvider
-				className="h-full w-fit"
-				style={{
-					"--sidebar-width": "22rem",
-				} as React.CSSProperties}
-			>
-				<RightSidebar />
+			<SidebarProvider className="h-full w-fit">
+				<RightSidebar onWidthChange={handleRightSidebarWidthChange} />
 			</SidebarProvider>
 		</div>
 	);
