@@ -1,6 +1,13 @@
 "use client";
-import React, { FC } from "react";
-import { EdgeProps, getSmoothStepPath, BaseEdge } from "@xyflow/react";
+import React, { FC, useState } from "react";
+import {
+	EdgeProps,
+	getSmoothStepPath,
+	BaseEdge,
+	useReactFlow,
+} from "@xyflow/react";
+import { Trash2, X } from "lucide-react";
+import { Button } from "../ui/button";
 
 const CustomEdge: FC<EdgeProps> = ({
 	id,
@@ -15,6 +22,9 @@ const CustomEdge: FC<EdgeProps> = ({
 	markerStart,
 	data,
 }) => {
+	const [isHovered, setIsHovered] = useState(false);
+	const { deleteElements } = useReactFlow();
+
 	const [edgePath] = getSmoothStepPath({
 		sourceX,
 		sourceY,
@@ -24,9 +34,6 @@ const CustomEdge: FC<EdgeProps> = ({
 		targetPosition,
 		borderRadius: 20,
 	});
-
-	console.log("CustomEdge data:", data);
-	console.log("Processing value:", data?.processing);
 
 	const processing = data?.processing;
 
@@ -38,18 +45,43 @@ const CustomEdge: FC<EdgeProps> = ({
 		...style,
 	};
 
-	console.log("Edge style:", edgeStyle);
-	console.log("Processing:", processing);
+	const handleDelete = (event: React.MouseEvent) => {
+		event.stopPropagation();
+		deleteElements({ edges: [{ id }] });
+	};
+
+	const centerX = (sourceX + targetX) / 2;
+	const centerY = (sourceY + targetY) / 2;
 
 	return (
-		<BaseEdge
-			id={id}
-			path={edgePath}
-			markerEnd={markerEnd}
-			markerStart={markerStart}
-			className="custom-flow-edge"
-			style={edgeStyle}
-		/>
+		<g
+			onMouseEnter={() => setIsHovered(true)}
+			onMouseLeave={() => setIsHovered(false)}
+		>
+			<BaseEdge
+				id={id}
+				path={edgePath}
+				markerEnd={markerEnd}
+				markerStart={markerStart}
+				className="custom-flow-edge"
+				style={edgeStyle}
+			/>
+			{isHovered && (
+				<foreignObject
+					x={centerX - 16}
+					y={centerY - 16}
+					className="overflow-visible"
+				>
+					<Button
+						onClick={handleDelete}
+						className="flex items-center justify-center size-8 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-colors duration-200 cursor-pointer"
+						title="Delete edge"
+					>
+						<Trash2 size={12} />
+					</Button>
+				</foreignObject>
+			)}
+		</g>
 	);
 };
 

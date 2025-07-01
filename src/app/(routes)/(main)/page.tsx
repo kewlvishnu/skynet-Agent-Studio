@@ -91,14 +91,54 @@ function FlowCanvas({ rightSidebarWidth }: { rightSidebarWidth: number }) {
 		);
 	}, []);
 
-	const deleteNode = useCallback((nodeId: string) => {
-		setNodes((nds) => nds.filter((node) => node.id !== nodeId));
-		setEdges((eds) =>
-			eds.filter(
-				(edge) => edge.source !== nodeId && edge.target !== nodeId
-			)
-		);
-	}, []);
+	const deleteNode = useCallback(
+		(nodeId: string) => {
+			setEdges((currentEdges) => {
+				// Find incoming and outgoing edges
+				const incomingEdges = currentEdges.filter(
+					(edge) => edge.target === nodeId
+				);
+				const outgoingEdges = currentEdges.filter(
+					(edge) => edge.source === nodeId
+				);
+
+				// Create new connecting edges (reconnect the flow)
+				const newEdges = [];
+				for (const incomingEdge of incomingEdges) {
+					for (const outgoingEdge of outgoingEdges) {
+						// Avoid self-loops
+						if (incomingEdge.source !== outgoingEdge.target) {
+							newEdges.push({
+								id: `reconnect-${incomingEdge.source}-${
+									outgoingEdge.target
+								}-${Date.now()}-${Math.random()
+									.toString(36)
+									.substr(2, 9)}`,
+								source: incomingEdge.source,
+								target: outgoingEdge.target,
+								type: "custom",
+								data: {
+									processing: isProcessing,
+								},
+							});
+						}
+					}
+				}
+
+				// Remove edges connected to the deleted node
+				const filteredEdges = currentEdges.filter(
+					(edge) => edge.source !== nodeId && edge.target !== nodeId
+				);
+
+				// Return filtered edges plus new reconnecting edges
+				return [...filteredEdges, ...newEdges];
+			});
+
+			// Remove the node
+			setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+		},
+		[isProcessing]
+	);
 
 	const onNodesChange: OnNodesChange = useCallback(
 		(changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -447,7 +487,10 @@ function FlowCanvas({ rightSidebarWidth }: { rightSidebarWidth: number }) {
 			<div
 				className="absolute top-5 z-10 flex items-center gap-2 transition-all duration-300"
 				style={{
-					right: rightSidebarWidth > 0 ? `${rightSidebarWidth - 200}px` : '20px',
+					right:
+						rightSidebarWidth > 0
+							? `${rightSidebarWidth - 200}px`
+							: "20px",
 				}}
 			>
 				<Button
