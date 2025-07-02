@@ -72,49 +72,107 @@ function FlowCanvas({ rightSidebarWidth }: { rightSidebarWidth: number }) {
 
 	const deleteNode = useCallback(
 		(nodeId: string) => {
-			setEdges((currentEdges) => {
-				// Find incoming and outgoing edges
-				const incomingEdges = currentEdges.filter(
-					(edge) => edge.target === nodeId
-				);
-				const outgoingEdges = currentEdges.filter(
-					(edge) => edge.source === nodeId
+			setNodes((currentNodes) => {
+				const nodeToDelete = currentNodes.find(
+					(node) => node.id === nodeId
 				);
 
-				// Create new connecting edges (reconnect the flow)
-				const newEdges = [];
-				for (const incomingEdge of incomingEdges) {
-					for (const outgoingEdge of outgoingEdges) {
-						// Avoid self-loops
-						if (incomingEdge.source !== outgoingEdge.target) {
-							newEdges.push({
-								id: `reconnect-${incomingEdge.source}-${
-									outgoingEdge.target
-								}-${Date.now()}-${Math.random()
-									.toString(36)
-									.substr(2, 9)}`,
-								source: incomingEdge.source,
-								target: outgoingEdge.target,
-								type: "custom",
-								data: {
-									processing: isProcessing,
-								},
-							});
-						}
-					}
+				// If it's a container node, also delete all child nodes
+				if (nodeToDelete?.type === "agentContainer") {
+					const childNodes = currentNodes.filter(
+						(node) => node.parentId === nodeId
+					);
+					const childNodeIds = childNodes.map((child) => child.id);
+
+					// Remove edges connected to child nodes
+					setEdges((currentEdges) => {
+						return currentEdges.filter(
+							(edge) =>
+								!childNodeIds.includes(edge.source) &&
+								!childNodeIds.includes(edge.target) &&
+								edge.source !== nodeId &&
+								edge.target !== nodeId
+						);
+					});
+
+					// Remove container and all child nodes
+					return currentNodes.filter(
+						(node) => node.id !== nodeId && node.parentId !== nodeId
+					);
 				}
 
-				// Remove edges connected to the deleted node
-				const filteredEdges = currentEdges.filter(
-					(edge) => edge.source !== nodeId && edge.target !== nodeId
+				// Check if this is a child node (has a parent)
+				const parentId = nodeToDelete?.parentId;
+
+				// Handle regular node deletion
+				setEdges((currentEdges) => {
+					// Find incoming and outgoing edges
+					const incomingEdges = currentEdges.filter(
+						(edge) => edge.target === nodeId
+					);
+					const outgoingEdges = currentEdges.filter(
+						(edge) => edge.source === nodeId
+					);
+
+					// Create new connecting edges (reconnect the flow)
+					const newEdges = [];
+					for (const incomingEdge of incomingEdges) {
+						for (const outgoingEdge of outgoingEdges) {
+							// Avoid self-loops
+							if (incomingEdge.source !== outgoingEdge.target) {
+								newEdges.push({
+									id: `reconnect-${incomingEdge.source}-${
+										outgoingEdge.target
+									}-${Date.now()}-${Math.random()
+										.toString(36)
+										.substr(2, 9)}`,
+									source: incomingEdge.source,
+									target: outgoingEdge.target,
+									type: "custom",
+									data: {
+										processing: isProcessing,
+									},
+								});
+							}
+						}
+					}
+
+					// Remove edges connected to the deleted node
+					const filteredEdges = currentEdges.filter(
+						(edge) =>
+							edge.source !== nodeId && edge.target !== nodeId
+					);
+
+					// Return filtered edges plus new reconnecting edges
+					return [...filteredEdges, ...newEdges];
+				});
+
+				// Remove the node and update parent container if needed
+				const updatedNodes = currentNodes.filter(
+					(node) => node.id !== nodeId
 				);
 
-				// Return filtered edges plus new reconnecting edges
-				return [...filteredEdges, ...newEdges];
-			});
+				// If this was a child node, update the parent container's child count
+				if (parentId) {
+					const remainingChildNodes = updatedNodes.filter(
+						(node) => node.parentId === parentId
+					);
+					return updatedNodes.map((node) =>
+						node.id === parentId
+							? {
+									...node,
+									data: {
+										...node.data,
+										childNodeCount:
+											remainingChildNodes.length,
+									},
+							  }
+							: node
+					);
+				}
 
-			// Remove the node
-			setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+				return updatedNodes;
+			});
 		},
 		[isProcessing]
 	);
@@ -244,28 +302,55 @@ function FlowCanvas({ rightSidebarWidth }: { rightSidebarWidth: number }) {
 					}
 					return;
 				} else if (droppedData.name && droppedData.id) {
-					// Fetch detailed information first to create flow
+					// Create agent container when an agent is dropped
 					try {
 						const detailedResponse = await getAgentById(
 							droppedData.id
 						);
+
+						const timestamp = Date.now();
+						const containerId = `agent-container-${timestamp}`;
+
 						if (detailedResponse.success) {
 							const agentDetail = detailedResponse.data;
-							const timestamp = Date.now();
 
-							// Create flow from agent's subnet_list and layout
+							// Create the container node
+							const containerNode: Node = {
+								id: containerId,
+								type: "agentContainer",
+								position,
+								data: {
+									agentName: agentDetail.name,
+									label: agentDetail.name,
+									description: agentDetail.description,
+									onDelete: deleteNode,
+									childNodes: [],
+									childNodeCount: 0,
+								},
+								// Set initial container size
+								style: {
+									width: 1200,
+									height: 800,
+								},
+							};
+
+							setNodes((prev) => [...prev, containerNode]);
+
+							// If agent has subnet_list, create child nodes inside the container
 							if (agentDetail.subnet_list && agentDetail.layout) {
-								const flowNodes: Node[] = [];
-								const flowEdges: Edge[] = [];
+								const childNodes: Node[] = [];
+								const childEdges: Edge[] = [];
 
-								// Create start node
+								// Create start node inside container
 								if (agentDetail.layout.startPosition) {
 									const startNodeId = `start-${timestamp}`;
-									flowNodes.push({
+									childNodes.push({
 										id: startNodeId,
 										type: "start",
-										position:
-											agentDetail.layout.startPosition,
+										position: {
+											x: 50,
+											y: 50,
+										},
 										data: {
 											label: "Start",
 											description: "Start",
@@ -273,30 +358,40 @@ function FlowCanvas({ rightSidebarWidth }: { rightSidebarWidth: number }) {
 											color: "bg-blue-500",
 											onDelete: deleteNode,
 										},
+										parentId: containerId,
+										extent: "parent",
 									});
 								}
 
-								// Create tool nodes for each subnet
+								// Create tool nodes inside container
 								const subnetNodeMapping: Record<
 									number,
 									string
 								> = {};
 								agentDetail.subnet_list.forEach(
-									(subnet: SubnetItem) => {
+									(subnet: SubnetItem, index: number) => {
 										const nodeId = `tool-${subnet.itemID}-${timestamp}`;
 										subnetNodeMapping[subnet.itemID] =
 											nodeId;
 
-										// Get position from layout or use default
-										const nodePosition = agentDetail.layout
-											.subnetPositions?.[
-											`item-${subnet.itemID}`
-										] || {
-											x: 300 + (subnet.itemID - 1) * 200,
-											y: 200,
+										// Arrange tools in a grid layout (2 columns max)
+										const nodesPerRow = 2;
+										const nodeWidth = 400; // Tool node width
+										const nodeSpacing = 20; // Spacing between nodes
+
+										const row = Math.floor(
+											index / nodesPerRow
+										);
+										const col = index % nodesPerRow;
+
+										const nodePosition = {
+											x:
+												50 +
+												col * (nodeWidth + nodeSpacing),
+											y: 200 + row * 150, // 150px between rows (collapsed height + spacing)
 										};
 
-										flowNodes.push({
+										childNodes.push({
 											id: nodeId,
 											type: "tool",
 											position: nodePosition,
@@ -317,14 +412,16 @@ function FlowCanvas({ rightSidebarWidth }: { rightSidebarWidth: number }) {
 												subnet_url: subnet.subnetURL,
 												subnet_id: subnet.subnetID,
 												onDelete: deleteNode,
-												// Include all subnet properties
+												defaultExpanded: false,
 												...subnet,
 											},
+											parentId: containerId,
+											extent: "parent",
 										});
 									}
 								);
 
-								// Create edges based on inputItemID connections
+								// Create edges between child nodes
 								agentDetail.subnet_list.forEach(
 									(subnet: SubnetItem) => {
 										if (
@@ -346,7 +443,7 @@ function FlowCanvas({ rightSidebarWidth }: { rightSidebarWidth: number }) {
 														sourceNodeId &&
 														targetNodeId
 													) {
-														flowEdges.push({
+														childEdges.push({
 															id: `edge-${inputId}-${subnet.itemID}-${timestamp}`,
 															source: sourceNodeId,
 															target: targetNodeId,
@@ -363,7 +460,7 @@ function FlowCanvas({ rightSidebarWidth }: { rightSidebarWidth: number }) {
 									}
 								);
 
-								// Connect start node to first nodes (nodes with no input)
+								// Connect start node to first nodes
 								const startNodeId = `start-${timestamp}`;
 								const firstNodes =
 									agentDetail.subnet_list.filter(
@@ -376,7 +473,7 @@ function FlowCanvas({ rightSidebarWidth }: { rightSidebarWidth: number }) {
 									const targetNodeId =
 										subnetNodeMapping[subnet.itemID];
 									if (targetNodeId) {
-										flowEdges.push({
+										childEdges.push({
 											id: `edge-start-${subnet.itemID}-${timestamp}`,
 											source: startNodeId,
 											target: targetNodeId,
@@ -388,56 +485,71 @@ function FlowCanvas({ rightSidebarWidth }: { rightSidebarWidth: number }) {
 									}
 								});
 
-								// Add all nodes and edges to the flow
-								setNodes((prev) => [...prev, ...flowNodes]);
-								setEdges((prev) => [...prev, ...flowEdges]);
-							} else {
-								// Fallback: create single agent node if no layout/subnet_list
-								const nodeId = `agent-${timestamp}`;
-								const agentNode: Node = {
-									id: nodeId,
-									type: "agent",
-									position,
-									data: {
-										label: agentDetail.name,
-										description: agentDetail.description,
-										onDelete: deleteNode,
-									},
-								};
-								setNodes((prev) => [...prev, agentNode]);
+								// Add child nodes and edges
+								setNodes((prev) => [...prev, ...childNodes]);
+								setEdges((prev) => [...prev, ...childEdges]);
+
+								// Update container with child node count and trigger auto-resize
+								setTimeout(() => {
+									setNodes((prev) =>
+										prev.map((node) =>
+											node.id === containerId
+												? {
+														...node,
+														data: {
+															...node.data,
+															childNodeCount:
+																childNodes.length,
+														},
+												  }
+												: node
+										)
+									);
+								}, 100); // Small delay to ensure child nodes are positioned first
 							}
 						} else {
-							// Handle API error - create simple agent node
-							const nodeId = `agent-${Date.now()}`;
-							const errorNode: Node = {
-								id: nodeId,
-								type: "agent",
+							// Handle API error - create container with error state
+							const errorContainer: Node = {
+								id: containerId,
+								type: "agentContainer",
 								position,
 								data: {
+									agentName: droppedData.name,
 									label: droppedData.name,
 									description: "Failed to load agent details",
-									error: true,
 									onDelete: deleteNode,
+									childNodes: [],
+									childNodeCount: 0,
+								},
+								style: {
+									width: 1000,
+									height: 800,
 								},
 							};
-							setNodes((prev) => [...prev, errorNode]);
+							setNodes((prev) => [...prev, errorContainer]);
 						}
 					} catch (error) {
 						console.error("Error fetching agent details:", error);
-						// Create error node
-						const nodeId = `agent-${Date.now()}`;
-						const errorNode: Node = {
-							id: nodeId,
-							type: "agent",
+						// Create error container
+						const containerId = `agent-container-${Date.now()}`;
+						const errorContainer: Node = {
+							id: containerId,
+							type: "agentContainer",
 							position,
 							data: {
+								agentName: droppedData.name,
 								label: droppedData.name,
 								description: "Failed to load agent details",
-								error: true,
 								onDelete: deleteNode,
+								childNodes: [],
+								childNodeCount: 0,
+							},
+							style: {
+								width: 1000,
+								height: 800,
 							},
 						};
-						setNodes((prev) => [...prev, errorNode]);
+						setNodes((prev) => [...prev, errorContainer]);
 					}
 					return; // Early return to avoid creating newNode below
 				}

@@ -62,6 +62,7 @@ interface ToolNodeProps {
 		expected_input?: string | null;
 		expected_output?: string | null;
 		system_prompt?: string | null;
+		defaultExpanded?: boolean;
 	};
 }
 
@@ -70,7 +71,7 @@ export default function ToolNode({ id, data }: ToolNodeProps) {
 	const [selectedFileName, setSelectedFileName] = useState<string | null>(
 		null
 	);
-	const [isExpanded, setIsExpanded] = useState(true);
+	const [isExpanded, setIsExpanded] = useState(data.defaultExpanded ?? true);
 	const [changeDirection, setChangeDirection] = useState(false);
 
 	const toolTitle = data.subnet_name || data.label || "Tool";
@@ -395,13 +396,17 @@ export default function ToolNode({ id, data }: ToolNodeProps) {
 					type="target"
 					position={Position.Left}
 					id={`${id}-target`}
-					className={!isExpanded ? "!h-8" : ""}
+					className={`!bg-royal-blue !border-royal-blue opacity-80 ${
+						!isExpanded ? "!h-8" : ""
+					}`}
 				/>
 				<CustomHandle
 					type="source"
 					position={Position.Right}
 					id={`${id}-source`}
-					className={!isExpanded ? "!h-8" : ""}
+					className={`!bg-royal-blue !border-royal-blue opacity-80 ${
+						!isExpanded ? "!h-8" : ""
+					}`}
 				/>
 			</div>
 		</div>

@@ -11,7 +11,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 	const web3Context = useContext(Web3Context);
 
 	return (
-		<SidebarProvider className="flex h-screen overflow-hidden bg-background text-foreground">
+		<SidebarProvider
+			defaultOpen={false}
+			className="flex h-screen overflow-hidden bg-background text-foreground"
+		>
 			{web3Context.status === CONNECT_STATES.CONNECTED ? (
 				<>
 					<div className="flex w-fit max-w-48">

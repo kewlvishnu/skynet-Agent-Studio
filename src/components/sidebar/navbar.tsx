@@ -66,7 +66,7 @@ export default function Navbar({ className }: NavbarProps) {
 							alt="Skynet logo"
 							width={1000}
 							height={1000}
-							className="w-auto h-6 dark:invert"
+							className="w-auto min-h-6 h-6 dark:invert"
 						/>
 					</div>
 				</div>
