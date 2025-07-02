@@ -1,5 +1,11 @@
 import { nodeTypes } from "@/components/nodes";
-import { GitForkIcon, PackageSearchIcon, RepeatIcon, Play } from "lucide-react";
+import {
+	GitForkIcon,
+	PackageSearchIcon,
+	RepeatIcon,
+	Play,
+	RotateCcw,
+} from "lucide-react";
 
 export type Block = {
 	id: number;
@@ -90,6 +96,14 @@ export const blocks: Block[] = [
 		description: "Create a Loop",
 		icon: RepeatIcon,
 		color: "bg-cyan-500",
+	},
+	{
+		id: 8,
+		type: "loopContainer",
+		title: "Loop Container",
+		description: "Container that loops tools",
+		icon: RotateCcw,
+		color: "bg-orange-500",
 	},
 	// {
 	// 	id: 10,

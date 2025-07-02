@@ -553,7 +553,34 @@ function FlowCanvas({ rightSidebarWidth }: { rightSidebarWidth: number }) {
 					}
 					return; // Early return to avoid creating newNode below
 				}
-				// Otherwise it's a block
+				// Handle loop container block specifically
+				else if (droppedData.type === "loopContainer") {
+					const containerId = `loop-container-${Date.now()}`;
+					const loopContainerNode: Node = {
+						id: containerId,
+						type: "loopContainer",
+						position,
+						data: {
+							loopName: droppedData.title,
+							label: droppedData.title,
+							description: droppedData.description,
+							loopType: "count",
+							maxIterations: 3,
+							currentIteration: 0,
+							isRunning: false,
+							childNodeCount: 0,
+							onDelete: deleteNode,
+						},
+						// Set initial container size
+						style: {
+							width: 1200,
+							height: 900,
+						},
+					};
+
+					setNodes((prev) => [...prev, loopContainerNode]);
+				}
+				// Otherwise it's a regular block
 				else {
 					newNode = {
 						id: `${droppedData.type}-${Date.now()}`,

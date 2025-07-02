@@ -63,6 +63,7 @@ interface ToolNodeProps {
 		expected_output?: string | null;
 		system_prompt?: string | null;
 		defaultExpanded?: boolean;
+		onToggleExpand?: () => void;
 	};
 }
 
@@ -98,6 +99,8 @@ export default function ToolNode({ id, data }: ToolNodeProps) {
 
 	const toggleExpanded = () => {
 		setIsExpanded(!isExpanded);
+		// Notify parent container about size change
+		data.onToggleExpand?.();
 	};
 
 	const handleDelete = () => {

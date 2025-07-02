@@ -1,5 +1,6 @@
 import AgentNode from "./blocks/agent";
 import AgentContainer from "./blocks/agent-container";
+import LoopContainer from "./blocks/loop-container";
 import ApiNode from "./blocks/api";
 import ConditionNode from "./blocks/condition";
 import FunctionNode from "./blocks/function";
@@ -16,6 +17,7 @@ export const nodeTypes = {
 	start: StartNode,
 	agent: AgentNode,
 	agentContainer: AgentContainer,
+	loopContainer: LoopContainer,
 	api: ApiNode,
 	condition: ConditionNode,
 	function: FunctionNode,

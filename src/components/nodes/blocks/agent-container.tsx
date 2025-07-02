@@ -71,106 +71,106 @@ export default function AgentContainer({
 
 	const agentName = data.agentName || data.label || "Agent Container";
 
-	// Handle drag over
-	const handleDragOver = useCallback((e: React.DragEvent) => {
-		e.preventDefault();
-		e.stopPropagation();
-		e.dataTransfer.dropEffect = "move";
-	}, []);
+	// Handle drag over - COMMENTED OUT to disable ondrop functionality
+	// const handleDragOver = useCallback((e: React.DragEvent) => {
+	// 	e.preventDefault();
+	// 	e.stopPropagation();
+	// 	e.dataTransfer.dropEffect = "move";
+	// }, []);
 
-	// Handle drop of tools into container
-	const handleDrop = useCallback(
-		async (e: React.DragEvent) => {
-			e.preventDefault();
-			e.stopPropagation();
+	// Handle drop of tools into container - COMMENTED OUT to disable ondrop functionality
+	// const handleDrop = useCallback(
+	// 	async (e: React.DragEvent) => {
+	// 		e.preventDefault();
+	// 		e.stopPropagation();
 
-			if (!isExpanded) return; // Don't allow drops on collapsed containers
+	// 		if (!isExpanded) return; // Don't allow drops on collapsed containers
 
-			try {
-				const droppedData = JSON.parse(
-					e.dataTransfer.getData("application/reactflow")
-				);
+	// 		try {
+	// 			const droppedData = JSON.parse(
+	// 				e.dataTransfer.getData("application/reactflow")
+	// 			);
 
-				// Only handle tools (subnets) for now
-				if (droppedData.unique_id && droppedData.subnet_name) {
-					const rect = containerRef.current?.getBoundingClientRect();
-					if (!rect) return;
+	// 			// Only handle tools (subnets) for now
+	// 			if (droppedData.unique_id && droppedData.subnet_name) {
+	// 				const rect = containerRef.current?.getBoundingClientRect();
+	// 				if (!rect) return;
 
-					// Calculate position relative to container
-					const containerPosition = {
-						x: e.clientX - rect.left - 50, // Adjust for padding
-						y: e.clientY - rect.top - 80, // Adjust for header
-					};
+	// 				// Calculate position relative to container
+	// 				const containerPosition = {
+	// 					x: e.clientX - rect.left - 50, // Adjust for padding
+	// 					y: e.clientY - rect.top - 80, // Adjust for header
+	// 				};
 
-					const nodeId = `tool-${Date.now()}`;
-					const timestamp = Date.now();
+	// 				const nodeId = `tool-${Date.now()}`;
+	// 				const timestamp = Date.now();
 
-					// Create tool node as child of this container
-					const toolNode: Node = {
-						id: nodeId,
-						type: "tool",
-						position: containerPosition,
-						data: {
-							...droppedData,
-							onDelete: data.onDelete,
-							defaultExpanded: false, // Tools dropped into containers are collapsed
-						},
-						parentId: id,
-						extent: "parent" as const,
-					} as Node;
+	// 				// Create tool node as child of this container
+	// 				const toolNode: Node = {
+	// 					id: nodeId,
+	// 					type: "tool",
+	// 					position: containerPosition,
+	// 					data: {
+	// 						...droppedData,
+	// 						onDelete: data.onDelete,
+	// 						defaultExpanded: false, // Tools dropped into containers are collapsed
+	// 					},
+	// 					parentId: id,
+	// 					extent: "parent" as const,
+	// 				} as Node;
 
-					setNodes((prev) => [...prev, toolNode]);
+	// 				setNodes((prev) => [...prev, toolNode]);
 
-					// Update container's child count
-					const currentChildCount = data.childNodeCount || 0;
-					setNodes((prev) =>
-						prev.map((node) =>
-							node.id === id
-								? {
-										...node,
-										data: {
-											...node.data,
-											childNodeCount:
-												currentChildCount + 1,
-										},
-								  }
-								: node
-						)
-					);
+	// 				// Update container's child count
+	// 				const currentChildCount = data.childNodeCount || 0;
+	// 				setNodes((prev) =>
+	// 					prev.map((node) =>
+	// 						node.id === id
+	// 							? {
+	// 									...node,
+	// 									data: {
+	// 										...node.data,
+	// 										childNodeCount:
+	// 											currentChildCount + 1,
+	// 									},
+	// 							  }
+	// 							: node
+	// 					)
+	// 				);
 
-					// Fetch detailed tool information
-					try {
-						const detailedResponse = await getSubnetById(
-							droppedData.unique_id
-						);
-						if (detailedResponse.success) {
-							const toolDetail = detailedResponse.data;
-							setNodes((prev) =>
-								prev.map((node) =>
-									node.id === nodeId
-										? {
-												...node,
-												data: {
-													...node.data,
-													...toolDetail,
-													onDelete: data.onDelete,
-													defaultExpanded: false,
-												},
-										  }
-										: node
-								)
-							);
-						}
-					} catch (error) {
-						console.error("Error fetching tool details:", error);
-					}
-				}
-			} catch (error) {
-				console.error("Error parsing dropped data:", error);
-			}
-		},
-		[id, data.onDelete, data.childNodeCount, setNodes, isExpanded]
-	);
+	// 				// Fetch detailed tool information
+	// 				try {
+	// 					const detailedResponse = await getSubnetById(
+	// 						droppedData.unique_id
+	// 					);
+	// 					if (detailedResponse.success) {
+	// 						const toolDetail = detailedResponse.data;
+	// 						setNodes((prev) =>
+	// 							prev.map((node) =>
+	// 								node.id === nodeId
+	// 									? {
+	// 											...node,
+	// 											data: {
+	// 												...node.data,
+	// 												...toolDetail,
+	// 												onDelete: data.onDelete,
+	// 												defaultExpanded: false,
+	// 											},
+	// 									  }
+	// 									: node
+	// 							)
+	// 						);
+	// 					}
+	// 				} catch (error) {
+	// 					console.error("Error fetching tool details:", error);
+	// 				}
+	// 			}
+	// 		} catch (error) {
+	// 			console.error("Error parsing dropped data:", error);
+	// 		}
+	// 	},
+	// 	[id, data.onDelete, data.childNodeCount, setNodes, isExpanded]
+	// );
 
 	const updateContainerSize = useCallback(() => {
 		// Don't auto-resize if user has manually resized
@@ -346,10 +346,9 @@ export default function AgentContainer({
 
 			<div
 				className="w-full h-full rounded-xl relative hover:border-royal-blue transition-all duration-300"
-				onDragOver={handleDragOver}
-				onDrop={handleDrop}
+				// ondrop functionality disabled for agent container
 			>
-				<div className="absolute -top-8 left-10 z-10">
+				<div className="absolute -top-8 left-5 z-10">
 					<div
 						className={`bg-theme border-2 border-dashed border-royal-blue/60 rounded-lg p-4 flex items-center [border-spacing:1px] ${
 							isExpanded ? "gap-8" : "gap-6"
@@ -401,8 +400,7 @@ export default function AgentContainer({
 								data.childNodeCount === 0) && (
 								<div
 									className="flex-1 border border-dashed border-border/50 rounded-lg bg-background/20 flex items-center justify-center hover:bg-background/30 hover:border-brand-blue/30 transition-all duration-200"
-									onDragOver={handleDragOver}
-									onDrop={handleDrop}
+									// ondrop functionality disabled for agent container
 								>
 									<div className="text-center text-muted-foreground">
 										<Bot className="w-12 h-12 mx-auto mb-2 opacity-50" />
