@@ -53,28 +53,7 @@ function RightSidebar({
 function FlowCanvas({ rightSidebarWidth }: { rightSidebarWidth: number }) {
 	const { screenToFlowPosition } = useReactFlow();
 	const { open } = useSidebar();
-	const [nodes, setNodes] = useState<Node[]>([
-		{
-			id: "1",
-			type: "start",
-			position: { x: 500, y: 250 },
-			data: {
-				label: "Start",
-				description: "Start",
-				icon: "🚀",
-				color: "bg-blue-500",
-				onDelete: (nodeId: string) => {
-					setNodes((nds) => nds.filter((node) => node.id !== nodeId));
-					setEdges((eds) =>
-						eds.filter(
-							(edge) =>
-								edge.source !== nodeId && edge.target !== nodeId
-						)
-					);
-				},
-			},
-		},
-	]);
+	const [nodes, setNodes] = useState<Node[]>([]);
 
 	const [edges, setEdges] = useState<Edge[]>([]);
 	const [isProcessing, setIsProcessing] = useState(true);
@@ -265,104 +244,200 @@ function FlowCanvas({ rightSidebarWidth }: { rightSidebarWidth: number }) {
 					}
 					return;
 				} else if (droppedData.name && droppedData.id) {
-					const nodeId = `agent-${Date.now()}`;
-
-					// Create initial node with loading state
-					const initialNode: Node = {
-						id: nodeId,
-						type: "agent",
-						position,
-						data: {
-							label: droppedData.name,
-							description: "Loading agent details...",
-							isLoading: true,
-							onDelete: deleteNode,
-						},
-					};
-
-					setNodes((prev) => [...prev, initialNode]);
-
-					// Fetch detailed information
+					// Fetch detailed information first to create flow
 					try {
 						const detailedResponse = await getAgentById(
 							droppedData.id
 						);
 						if (detailedResponse.success) {
 							const agentDetail = detailedResponse.data;
+							const timestamp = Date.now();
 
-							// Update the node with detailed information
-							setNodes((prev) =>
-								prev.map((node) =>
-									node.id === nodeId
-										? {
-												...node,
-												data: {
-													...node.data,
-													label: agentDetail.name,
-													description:
-														agentDetail.description,
-													subnet_list:
-														agentDetail.subnet_list,
-													user_address:
-														agentDetail.user_address,
-													layout: agentDetail.layout,
-													is_deployed:
-														agentDetail.is_deployed,
-													ipfs_hash:
-														agentDetail.ipfs_hash,
-													collection_id:
-														agentDetail.collection_id,
-													nft_address:
-														agentDetail.nft_address,
-													created_at:
-														agentDetail.created_at,
-													updated_at:
-														agentDetail.updated_at,
-													isLoading: false,
-													onDelete: deleteNode,
-												},
-										  }
-										: node
-								)
-							);
+							// Create flow from agent's subnet_list and layout
+							if (agentDetail.subnet_list && agentDetail.layout) {
+								const flowNodes: Node[] = [];
+								const flowEdges: Edge[] = [];
+
+								// Create start node
+								if (agentDetail.layout.startPosition) {
+									const startNodeId = `start-${timestamp}`;
+									flowNodes.push({
+										id: startNodeId,
+										type: "start",
+										position:
+											agentDetail.layout.startPosition,
+										data: {
+											label: "Start",
+											description: "Start",
+											icon: "🚀",
+											color: "bg-blue-500",
+											onDelete: deleteNode,
+										},
+									});
+								}
+
+								// Create tool nodes for each subnet
+								const subnetNodeMapping: Record<
+									number,
+									string
+								> = {};
+								agentDetail.subnet_list.forEach(
+									(subnet: SubnetItem) => {
+										const nodeId = `tool-${subnet.itemID}-${timestamp}`;
+										subnetNodeMapping[subnet.itemID] =
+											nodeId;
+
+										// Get position from layout or use default
+										const nodePosition = agentDetail.layout
+											.subnetPositions?.[
+											`item-${subnet.itemID}`
+										] || {
+											x: 300 + (subnet.itemID - 1) * 200,
+											y: 200,
+										};
+
+										flowNodes.push({
+											id: nodeId,
+											type: "tool",
+											position: nodePosition,
+											data: {
+												label: subnet.subnetName,
+												subnet_name: subnet.subnetName,
+												system_prompt:
+													subnet.systemPrompt,
+												prompt_example:
+													subnet.promptExample,
+												expected_input:
+													subnet.expectedInput,
+												expected_output:
+													subnet.expectedOutput,
+												file_upload: subnet.fileUpload,
+												file_download:
+													subnet.fileDownload,
+												subnet_url: subnet.subnetURL,
+												subnet_id: subnet.subnetID,
+												onDelete: deleteNode,
+												// Include all subnet properties
+												...subnet,
+											},
+										});
+									}
+								);
+
+								// Create edges based on inputItemID connections
+								agentDetail.subnet_list.forEach(
+									(subnet: SubnetItem) => {
+										if (
+											subnet.inputItemID &&
+											Array.isArray(subnet.inputItemID)
+										) {
+											subnet.inputItemID.forEach(
+												(inputId: number) => {
+													const sourceNodeId =
+														subnetNodeMapping[
+															inputId
+														];
+													const targetNodeId =
+														subnetNodeMapping[
+															subnet.itemID
+														];
+
+													if (
+														sourceNodeId &&
+														targetNodeId
+													) {
+														flowEdges.push({
+															id: `edge-${inputId}-${subnet.itemID}-${timestamp}`,
+															source: sourceNodeId,
+															target: targetNodeId,
+															type: "custom",
+															data: {
+																processing:
+																	isProcessing,
+															},
+														});
+													}
+												}
+											);
+										}
+									}
+								);
+
+								// Connect start node to first nodes (nodes with no input)
+								const startNodeId = `start-${timestamp}`;
+								const firstNodes =
+									agentDetail.subnet_list.filter(
+										(subnet: SubnetItem) =>
+											!subnet.inputItemID ||
+											subnet.inputItemID.length === 0
+									);
+
+								firstNodes.forEach((subnet: SubnetItem) => {
+									const targetNodeId =
+										subnetNodeMapping[subnet.itemID];
+									if (targetNodeId) {
+										flowEdges.push({
+											id: `edge-start-${subnet.itemID}-${timestamp}`,
+											source: startNodeId,
+											target: targetNodeId,
+											type: "custom",
+											data: {
+												processing: isProcessing,
+											},
+										});
+									}
+								});
+
+								// Add all nodes and edges to the flow
+								setNodes((prev) => [...prev, ...flowNodes]);
+								setEdges((prev) => [...prev, ...flowEdges]);
+							} else {
+								// Fallback: create single agent node if no layout/subnet_list
+								const nodeId = `agent-${timestamp}`;
+								const agentNode: Node = {
+									id: nodeId,
+									type: "agent",
+									position,
+									data: {
+										label: agentDetail.name,
+										description: agentDetail.description,
+										onDelete: deleteNode,
+									},
+								};
+								setNodes((prev) => [...prev, agentNode]);
+							}
 						} else {
-							// Handle API error
-							setNodes((prev) =>
-								prev.map((node) =>
-									node.id === nodeId
-										? {
-												...node,
-												data: {
-													...node.data,
-													description:
-														"Failed to load agent details",
-													isLoading: false,
-													error: true,
-												},
-										  }
-										: node
-								)
-							);
+							// Handle API error - create simple agent node
+							const nodeId = `agent-${Date.now()}`;
+							const errorNode: Node = {
+								id: nodeId,
+								type: "agent",
+								position,
+								data: {
+									label: droppedData.name,
+									description: "Failed to load agent details",
+									error: true,
+									onDelete: deleteNode,
+								},
+							};
+							setNodes((prev) => [...prev, errorNode]);
 						}
 					} catch (error) {
 						console.error("Error fetching agent details:", error);
-						// Update node with error state
-						setNodes((prev) =>
-							prev.map((node) =>
-								node.id === nodeId
-									? {
-											...node,
-											data: {
-												...node.data,
-												description:
-													"Failed to load agent details",
-												isLoading: false,
-												error: true,
-											},
-									  }
-									: node
-							)
-						);
+						// Create error node
+						const nodeId = `agent-${Date.now()}`;
+						const errorNode: Node = {
+							id: nodeId,
+							type: "agent",
+							position,
+							data: {
+								label: droppedData.name,
+								description: "Failed to load agent details",
+								error: true,
+								onDelete: deleteNode,
+							},
+						};
+						setNodes((prev) => [...prev, errorNode]);
 					}
 					return; // Early return to avoid creating newNode below
 				}

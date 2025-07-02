@@ -91,9 +91,9 @@ export default function ToolNode({ id, data }: ToolNodeProps) {
 		console.log("Download requested");
 	};
 
-	const toggleDirection = () => {
-		setChangeDirection(!changeDirection);
-	};
+	// const toggleDirection = () => {
+	// 	setChangeDirection(!changeDirection);
+	// };
 
 	const toggleExpanded = () => {
 		setIsExpanded(!isExpanded);
@@ -193,7 +193,6 @@ export default function ToolNode({ id, data }: ToolNodeProps) {
 						<Button
 							variant="ghost"
 							size="icon"
-							onClick={toggleDirection}
 							className="text-muted-foreground hover:text-brand-blue hover:bg-brand-blue/10 transition-all duration-300 ease-in-out"
 						>
 							<Play className="w-4 h-4" />

@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Position } from "@xyflow/react";
-import { Book, Copy, Maximize2, Trash, Search } from "lucide-react";
+import { Book, Copy, Maximize2, Trash, Search, Minimize2 } from "lucide-react";
 import { CustomHandle } from "@/components/handle/custom-handle";
 
 interface KnowledgeNodeProps {
@@ -24,11 +24,16 @@ interface KnowledgeNodeProps {
 export default function KnowledgeNode({ id, data }: KnowledgeNodeProps) {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [numberOfResults, setNumberOfResults] = useState("");
+	const [isExpanded, setIsExpanded] = useState(true);
 
 	return (
 		<div className="group relative w-86">
 			<div className="w-80 bg-theme border border-border rounded-lg py-4 flex flex-col gap-2 shadow-lg hover:shadow-brand-cyan transition-all duration-200">
-				<div className="flex items-center justify-between px-4 pb-3 border-b border-border">
+				<div
+					className={`flex items-center justify-between px-4 border-border ${
+						isExpanded ? "border-b pb-2" : "pt-1 border-b-0"
+					}`}
+				>
 					<div className="flex items-center gap-3">
 						<div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-brand-cyan">
 							<Book className="w-5 h-5 text-white" />
@@ -42,20 +47,30 @@ export default function KnowledgeNode({ id, data }: KnowledgeNodeProps) {
 							variant="ghost"
 							size="icon"
 							className="text-muted-foreground hover:text-brand-cyan hover:bg-brand-cyan/10"
+							onClick={() => setIsExpanded(!isExpanded)}
 						>
-							<Copy className="w-4 h-4" />
+							{isExpanded ? (
+								<Minimize2 className="w-4 h-4" />
+							) : (
+								<Maximize2 className="w-4 h-4" />
+							)}
 						</Button>
 						<Button
 							variant="ghost"
 							size="icon"
-							className="text-muted-foreground hover:text-brand-cyan hover:bg-brand-cyan/10"
+							onClick={() => data.onDelete?.(id)}
+							className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
 						>
-							<Maximize2 className="w-4 h-4" />
+							<Trash className="w-4 h-4" />
 						</Button>
 					</div>
 				</div>
 
-				<div className="px-4 space-y-3">
+				<div
+					className={`px-4 space-y-3 ${
+						isExpanded ? "block" : "hidden"
+					}`}
+				>
 					<div className="space-y-1">
 						<Label className="text-sm font-medium text-foreground">
 							Operation{" "}
@@ -144,19 +159,16 @@ export default function KnowledgeNode({ id, data }: KnowledgeNodeProps) {
 					</div>
 				</div>
 
-				<CustomHandle type="target" position={Position.Left} />
-				<CustomHandle type="source" position={Position.Right} />
-			</div>
-
-			<div className="absolute top-0 -right-10">
-				<Button
-					variant="ghost"
-					size="icon"
-					onClick={() => data.onDelete?.(id)}
-					className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-				>
-					<Trash className="w-4 h-4" />
-				</Button>
+				<CustomHandle
+					type="target"
+					position={Position.Left}
+					className={!isExpanded ? "!h-8" : ""}
+				/>
+				<CustomHandle
+					type="source"
+					position={Position.Right}
+					className={!isExpanded ? "!h-8" : ""}
+				/>
 			</div>
 		</div>
 	);

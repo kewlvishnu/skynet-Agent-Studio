@@ -1,9 +1,5 @@
 import { nodeTypes } from "@/components/nodes";
-import {
-	GitForkIcon,
-	PackageSearchIcon,
-	RepeatIcon,
-} from "lucide-react";
+import { GitForkIcon, PackageSearchIcon, RepeatIcon, Play } from "lucide-react";
 
 export type Block = {
 	id: number;
@@ -15,8 +11,16 @@ export type Block = {
 };
 
 export const blocks: Block[] = [
+	{
+		id: 1,
+		type: "start",
+		title: "Start",
+		description: "Start workflow",
+		icon: Play,
+		color: "bg-blue-500",
+	},
 	// {
-	// 	id: 1,
+	// 	id: 2,
 	// 	type: "agent",
 	// 	title: "Agent",
 	// 	description: "Build an agent",
@@ -24,7 +28,7 @@ export const blocks: Block[] = [
 	// 	color: "bg-purple-500",
 	// },
 	// {
-	// 	id: 2,
+	// 	id: 3,
 	// 	type: "api",
 	// 	title: "API",
 	// 	description: "Use any API",
@@ -32,7 +36,7 @@ export const blocks: Block[] = [
 	// 	color: "bg-blue-500",
 	// },
 	{
-		id: 3,
+		id: 4,
 		type: "condition",
 		title: "Condition",
 		description: "Add a condition",
@@ -64,7 +68,7 @@ export const blocks: Block[] = [
 	// 	color: "bg-pink-500",
 	// },
 	{
-		id: 7,
+		id: 5,
 		type: "knowledge",
 		title: "Knowledge",
 		description: "Use vector search",
@@ -72,7 +76,7 @@ export const blocks: Block[] = [
 		color: "bg-teal-500",
 	},
 	// {
-	// 	id: 8,
+	// 	id: 6,
 	// 	type: "workflow",
 	// 	title: "Workflow",
 	// 	description: "Execute another workflow",
@@ -80,7 +84,7 @@ export const blocks: Block[] = [
 	// 	color: "bg-amber-500",
 	// },
 	{
-		id: 9,
+		id: 7,
 		type: "loop",
 		title: "Loop",
 		description: "Create a Loop",
