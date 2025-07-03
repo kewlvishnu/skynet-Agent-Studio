@@ -41,6 +41,8 @@ interface SubnetResponseData {
 	responseMessage?: string;
 	responseData?: Record<string, unknown>;
 	files?: { name: string; data: string; type: string }[];
+	fileData?: string;
+	contentType?: string;
 }
 
 // Helper function to safely format image sources
@@ -72,13 +74,12 @@ export default function RightWorkspaceSidebar({
 	const [isSubmitted, setIsSubmitted] = useState(false);
 	const { state } = useSidebar();
 	const sidebarRef = useRef<HTMLDivElement>(null);
-	const [sidebarWidth, setSidebarWidth] = useState(352); // 22rem = 352px
+	const [sidebarWidth, setSidebarWidth] = useState(352);
 	const [isResizing, setIsResizing] = useState(false);
 	const resizeRef = useRef<HTMLDivElement>(null);
 	const startXRef = useRef<number>(0);
 	const startWidthRef = useRef<number>(352);
 
-	// NFT and Test Management State
 	const [nfts, setNfts] = useState<number[]>([]);
 	const [selectedNft, setSelectedNft] = useState<string | null>(null);
 	const [isMinting, setIsMinting] = useState(false);
@@ -94,54 +95,14 @@ export default function RightWorkspaceSidebar({
 	const [showInsufficientFundsModal, setShowInsufficientFundsModal] =
 		useState(false);
 
-	// Context providers
 	const { skyBrowser } = useContext(AppCryptoContext);
 	const web3Context = useContext(Web3Context);
 	const { provider, web3Auth } = useWeb3Auth();
 
-	// Socket reference
 	const socketRef = useRef<Socket | null>(null);
 
-	// Helper function to refresh authentication
-	const refreshAuthentication = async () => {
-		if (!skyBrowser) {
-			throw new Error("SkyBrowser not available");
-		}
-
-		try {
-			setTestStatus((prev) => ({
-				...prev,
-				logs: [...(prev.logs || []), "🔄 Refreshing authentication..."],
-			}));
-
-			// Get fresh authentication (no clearAuthCache method available)
-			const newAuth = await skyBrowser.appManager.getUrsulaAuth();
-			if (newAuth.success) {
-				setTestStatus((prev) => ({
-					...prev,
-					logs: [
-						...(prev.logs || []),
-						"✅ Authentication refreshed successfully",
-					],
-				}));
-				return newAuth;
-			} else {
-				throw new Error("Failed to refresh authentication");
-			}
-		} catch (error) {
-			setTestStatus((prev) => ({
-				...prev,
-				logs: [
-					...(prev.logs || []),
-					"❌ Failed to refresh authentication",
-				],
-			}));
-			throw error;
-		}
-	};
-
-	const minWidth = 280; // Minimum width
-	const maxWidth = 600; // Maximum width
+	const minWidth = 280;
+	const maxWidth = 600;
 
 	const handleMouseMove = useCallback(
 		(e: MouseEvent) => {
@@ -184,7 +145,6 @@ export default function RightWorkspaceSidebar({
 		};
 	}, [isResizing, handleMouseMove, handleMouseUp]);
 
-	// Notify parent of width changes when sidebar state or width changes
 	useEffect(() => {
 		onWidthChange?.(state === "collapsed" ? 0 : sidebarWidth);
 	}, [state, sidebarWidth, onWidthChange]);
@@ -199,7 +159,6 @@ export default function RightWorkspaceSidebar({
 		[sidebarWidth]
 	);
 
-	// Auto-fetch NFTs on mount or when connected
 	useEffect(() => {
 		if (skyBrowser && isConnectedState(web3Context)) {
 			const fetchNFTList = async () => {
@@ -208,13 +167,10 @@ export default function RightWorkspaceSidebar({
 						skyBrowser.contractService.selectedAccount,
 						skyBrowser
 					);
-					// Store NFTs as numbers for consistency with the state
 					const nftNumbers = nftList.map((nft: string) =>
 						parseInt(nft)
 					);
 					setNfts(nftNumbers);
-
-					// Check if we have a previously selected NFT
 					const storedNftId = localStorage.getItem(
 						`selectedNftId-${web3Context.address}`
 					);
@@ -224,7 +180,6 @@ export default function RightWorkspaceSidebar({
 					) {
 						setSelectedNft(storedNftId);
 					} else if (nftNumbers.length > 0) {
-						// Set the first NFT as selected if no stored selection
 						setSelectedNft(nftNumbers[0].toString());
 					}
 				} catch (error) {
@@ -235,7 +190,6 @@ export default function RightWorkspaceSidebar({
 		}
 	}, [skyBrowser, web3Context]);
 
-	// Clean up socket on unmount
 	useEffect(() => {
 		return () => {
 			if (socketRef.current) {
@@ -243,8 +197,6 @@ export default function RightWorkspaceSidebar({
 			}
 		};
 	}, []);
-
-	// Mint a new NFT
 	const handleMintNFT = async () => {
 		if (!skyBrowser || !isConnectedState(web3Context) || !web3Auth) {
 			toast.error("Please connect your wallet first");
@@ -262,7 +214,6 @@ export default function RightWorkspaceSidebar({
 			if (mintResult.success && mintResult.nftId) {
 				toast.success(`NFT #${mintResult.nftId} minted successfully!`);
 
-				// Refresh the NFT list to get the updated state
 				const updatedNfts = await fetchNfts(
 					skyBrowser.contractService.selectedAccount,
 					skyBrowser
@@ -284,7 +235,6 @@ export default function RightWorkspaceSidebar({
 		}
 	};
 
-	// Test agent with socket communication and automatic NFT selection
 	const handleRunTest = async (prompt: string) => {
 		if (!selectedAgent) {
 			toast.error("Please select an agent on the canvas first");
@@ -304,10 +254,7 @@ export default function RightWorkspaceSidebar({
 		setUserPrompt(prompt);
 		setIsSubmitted(true);
 
-		// Automatic NFT selection logic
 		let nftId: string | null = null;
-
-		// First, try to use the currently selected NFT if it exists
 		if (selectedNft) {
 			// Verify the selected NFT is still valid
 			try {
@@ -353,10 +300,9 @@ export default function RightWorkspaceSidebar({
 			console.log("Selected new NFT:", nftId);
 		}
 
-		// Initialize test status
 		setTestStatus({
 			isRunning: true,
-			status: "running",
+			status: "initializing",
 			progress: 0,
 			message: "Initializing test run...",
 			logs: ["🔗 Connecting to Skynet User Agent..."],
@@ -365,11 +311,8 @@ export default function RightWorkspaceSidebar({
 		setSubnetResponses([]);
 
 		try {
-			// Get authentication signature with enhanced retry logic
 			console.log("Getting authentication with retry logic...");
 			const signature = await getAuthWithRetry(skyBrowser, 3);
-
-			// Validate authentication payload structure
 			if (!signature.data) {
 				throw new Error("Authentication response missing data");
 			}
@@ -397,16 +340,11 @@ export default function RightWorkspaceSidebar({
 				messageLength: authData.message?.length,
 			});
 
-			// Prepare payload for socket with validation
 			console.log("Selected agent subnets:", selectedAgent.subnets);
-
-			// Validate and clean subnet URLs
 			const validatedSubnets = selectedAgent.subnets.map(
 				(subnet: any) => {
-					// Ensure subnet has required fields and valid URLs
 					const cleanedSubnet = { ...subnet };
 
-					// Ensure essential fields exist
 					if (!cleanedSubnet.itemID) {
 						console.warn(`Subnet missing itemID:`, cleanedSubnet);
 					}
@@ -421,26 +359,21 @@ export default function RightWorkspaceSidebar({
 					// Validate subnetURL field
 					if (cleanedSubnet.subnetURL) {
 						if (typeof cleanedSubnet.subnetURL === "string") {
-							// Clean up common URL issues
 							let url = cleanedSubnet.subnetURL.trim();
 
-							// Remove any spaces or invalid characters
 							url = url.replace(/\s+/g, "");
 
-							// If it's not a complete URL, try to detect and fix
 							if (
 								url &&
 								!url.startsWith("http://") &&
 								!url.startsWith("https://")
 							) {
-								// If it looks like a domain, add https://
 								if (url.includes(".") && !url.includes(" ")) {
 									url = "https://" + url;
 								}
 							}
 
 							try {
-								// Test if URL is valid
 								new URL(url);
 								cleanedSubnet.subnetURL = url;
 							} catch (e) {
@@ -449,7 +382,6 @@ export default function RightWorkspaceSidebar({
 									cleanedSubnet.subnetURL,
 									"-> setting to empty string"
 								);
-								// Set to empty string instead of undefined to avoid issues
 								cleanedSubnet.subnetURL = "";
 							}
 						} else {
@@ -461,7 +393,6 @@ export default function RightWorkspaceSidebar({
 						}
 					}
 
-					// Ensure other URL fields are also valid
 					["subnet_url"].forEach((field) => {
 						if (
 							cleanedSubnet[field] &&
@@ -483,23 +414,19 @@ export default function RightWorkspaceSidebar({
 				}
 			);
 
-			// Validate prompt
 			const trimmedPrompt = prompt.trim();
 			if (!trimmedPrompt) {
 				throw new Error("Prompt cannot be empty after trimming");
 			}
 
 			if (trimmedPrompt.length > 10000) {
-				// Reasonable limit
 				throw new Error("Prompt is too long (max 10000 characters)");
 			}
 
-			// Validate NFT ID and ownership
 			if (!nftId) {
 				throw new Error("No NFT ID available for testing");
 			}
 
-			// Final verification of NFT ownership before proceeding
 			try {
 				const nftOwner =
 					await skyBrowser.contractService.AgentNFT.ownerOf(nftId);
@@ -526,10 +453,8 @@ export default function RightWorkspaceSidebar({
 				);
 			}
 
-			// At this point, nftId is guaranteed to be a valid string
 			const validatedNftId = nftId as string;
 
-			// Prepare workflow payload with correct structure matching expected format
 			const workflow = validatedSubnets.map(
 				(subnet: any, index: number) => {
 					const workflowItem = {
@@ -582,7 +507,6 @@ export default function RightWorkspaceSidebar({
 						associatedSubnets: subnet.associatedSubnets || [],
 					};
 
-					// Validate essential fields
 					if (!workflowItem.subnetName) {
 						console.warn(
 							`Workflow item ${index} missing subnetName, using fallback`
@@ -598,7 +522,6 @@ export default function RightWorkspaceSidebar({
 				}
 			);
 
-			// Validate workflow structure
 			if (workflow.length === 0) {
 				throw new Error(
 					"Workflow cannot be empty - please add at least one subnet to your agent"
@@ -615,7 +538,6 @@ export default function RightWorkspaceSidebar({
 				workflow: workflow,
 			};
 
-			// Log the socket payload for debugging
 			logAPICall("Skynet User Agent Socket", payload, null, null);
 
 			console.log("Sending payload to socket:", {
@@ -628,7 +550,6 @@ export default function RightWorkspaceSidebar({
 				workflow: workflow,
 			});
 
-			// Initialize socket connection
 			if (socketRef.current) {
 				socketRef.current.disconnect();
 			}
@@ -641,7 +562,6 @@ export default function RightWorkspaceSidebar({
 				reconnectionDelay: 2000,
 			});
 
-			// Handle connection timeout
 			socketRef.current.on("connect_error", (error) => {
 				console.error("Socket connection error:", error);
 				setTestStatus((prev) => ({
@@ -656,7 +576,6 @@ export default function RightWorkspaceSidebar({
 				}));
 			});
 
-			// Set up socket event handlers
 			socketRef.current.on("connect", () => {
 				setTestStatus((prev) => ({
 					...prev,
@@ -680,7 +599,6 @@ export default function RightWorkspaceSidebar({
 				}));
 			});
 
-			// Handle status updates from Skynet User Agent
 			socketRef.current.on("status", (data) => {
 				console.log("Received status update:", data);
 
@@ -697,7 +615,6 @@ export default function RightWorkspaceSidebar({
 				const subnet = statusData?.subnet || "unknown";
 				const itemID = statusData?.itemID || "unknown";
 
-				// Find subnet info from our workflow array
 				const subnetInfo = workflow.find((s: any) => {
 					return (
 						s.itemID?.toString() === itemID?.toString() ||
@@ -720,6 +637,16 @@ export default function RightWorkspaceSidebar({
 
 				if (statusValue === "starting") {
 					progress = 10;
+					setTestStatus((prev) => ({
+						...prev,
+						status: "initializing",
+						progress: 10,
+						message: "Starting subnet processing...",
+						logs: [
+							...(prev.logs || []),
+							`🚀 Starting ${subnetName} [ID:${itemID}]...`,
+						],
+					}));
 				} else if (statusValue === "processing") {
 					const currentIndex = workflow.findIndex((s: any) => {
 						return (
@@ -730,7 +657,6 @@ export default function RightWorkspaceSidebar({
 					});
 					progress = Math.floor((currentIndex / totalSubnets) * 100);
 
-					// Remove any previous 'Processing ...' log for this subnet, then add the new one
 					setTestStatus((prev) => {
 						const logs = (prev.logs || []).filter(
 							(log) =>
@@ -740,6 +666,10 @@ export default function RightWorkspaceSidebar({
 						);
 						return {
 							...prev,
+							status: "processing",
+							progress: progress,
+							currentSubnet: subnetName,
+							message: `Processing ${subnetName}...`,
 							logs: [
 								...logs,
 								`🔄 Processing ${subnetName} [ID:${itemID}]...`,
@@ -827,6 +757,12 @@ export default function RightWorkspaceSidebar({
 											fileData,
 									  ]
 									: updated[existingIndex].files,
+								fileData:
+									statusData.fileData ||
+									updated[existingIndex].fileData,
+								contentType:
+									statusData.contentType ||
+									updated[existingIndex].contentType,
 							};
 							return updated;
 						} else {
@@ -839,12 +775,13 @@ export default function RightWorkspaceSidebar({
 									responseMessage,
 									responseData: responseData || undefined,
 									files: fileData ? [fileData] : undefined,
+									fileData: statusData.fileData,
+									contentType: statusData.contentType,
 								},
 							];
 						}
 					});
 
-					// Remove any previous 'Processing ...' log for this subnet and add 'completed' log
 					setTestStatus((prev) => {
 						const logs = (prev.logs || []).filter(
 							(log) =>
@@ -865,7 +802,7 @@ export default function RightWorkspaceSidebar({
 
 					setTestStatus((prev) => ({
 						...prev,
-						status: "completed",
+						status: "test completed",
 						progress: 100,
 						isRunning: false,
 						message: "Test completed successfully",
@@ -878,25 +815,20 @@ export default function RightWorkspaceSidebar({
 					socketRef.current?.disconnect();
 				}
 
-				setTestStatus((prev) => ({
-					...prev,
-					progress: progress,
-					currentSubnet: subnetName,
-					status:
-						statusValue === "completed" ? "completed" : "running",
-					isRunning: statusValue !== "completed",
-					message:
-						statusValue === "completed"
-							? "Test completed successfully"
-							: `Processing ${subnetName}...`,
-				}));
+				if (statusValue === "completed") {
+					setTestStatus((prev) => ({
+						...prev,
+						progress: 100,
+						status: "test completed",
+						isRunning: false,
+						message: "Test completed successfully",
+					}));
+				}
 			});
 
-			// Handle socket errors
 			socketRef.current.on("error", (error) => {
 				console.error("Socket error:", error);
 
-				// Parse error details if it's an array (common socket.io format)
 				let errorMessage = "An error occurred";
 				let errorDetails = "";
 
@@ -905,7 +837,6 @@ export default function RightWorkspaceSidebar({
 					errorMessage = errorData.message || errorMessage;
 					errorDetails = errorData.error || "";
 
-					// Log more details for debugging
 					console.error("Detailed error:", errorData);
 
 					if (errorData.subnet) {
@@ -913,7 +844,6 @@ export default function RightWorkspaceSidebar({
 							errorData.subnet.subnetName || "unknown";
 						errorDetails += ` (Subnet: ${subnetName})`;
 
-						// Add specific error context for debugging
 						if (
 							errorData.error &&
 							errorData.error.includes("Invalid URL")
@@ -922,7 +852,6 @@ export default function RightWorkspaceSidebar({
 						}
 					}
 
-					// Add authentication context if relevant
 					if (
 						errorMessage.includes("auth") ||
 						errorMessage.includes("unauthorized")
@@ -931,7 +860,6 @@ export default function RightWorkspaceSidebar({
 							" - Try refreshing your wallet connection";
 					}
 
-					// Add workflow context if relevant
 					if (
 						errorData.workflow ||
 						errorMessage.includes("workflow")
@@ -956,7 +884,6 @@ export default function RightWorkspaceSidebar({
 				}));
 			});
 
-			// Handle socket disconnect
 			socketRef.current.on("disconnect", (reason) => {
 				console.log("Socket disconnected:", reason);
 				const disconnectMessage =
@@ -967,7 +894,7 @@ export default function RightWorkspaceSidebar({
 						: `Connection lost: ${reason}`;
 
 				setTestStatus((prev) => {
-					if (prev.status !== "completed") {
+					if (prev.status !== "test completed") {
 						return {
 							...prev,
 							logs: [
@@ -999,22 +926,28 @@ export default function RightWorkspaceSidebar({
 		}
 	};
 
-	// Convert subnet responses to test results format
 	const testResults = subnetResponses.map((response, index) => ({
 		id: index + 1,
 		testId: response.itemID,
 		subnetName: response.subnetName,
 		response: response.responseMessage || "No response message",
-		hasImage:
-			response.files &&
-			response.files.some((f) => f.type.startsWith("image/")),
-		fileName: response.files?.[0]?.name || undefined,
+		hasImage: Boolean(
+			(response.files &&
+				response.files.some((f) => f.type.startsWith("image/"))) ||
+				(response.contentType &&
+					response.contentType.startsWith("image/"))
+		),
+		fileName:
+			response.files?.[0]?.name ||
+			`file-${response.itemID}.${
+				response.contentType?.split("/")[1] || "bin"
+			}`,
 		responseData:
 			JSON.stringify(response.responseData, null, 2) || undefined,
-		files: response.files || undefined,
+		fileData: response.fileData,
+		contentType: response.contentType,
 	}));
 
-	// Insufficient Funds Modal component
 	const InsufficientFundsModal = () => {
 		if (!showInsufficientFundsModal) return null;
 
@@ -1047,11 +980,9 @@ export default function RightWorkspaceSidebar({
 
 	const currentStepToShow = (() => {
 		if (!testStatus.currentSubnet) return undefined;
-		// Find the corresponding subnet response
 		const found = subnetResponses.find(
 			(r) => r.subnetName === testStatus.currentSubnet
 		);
-		// Only show if not completed
 		if (found && found.status === "completed") return undefined;
 		return testStatus.currentSubnet;
 	})();
@@ -1083,7 +1014,7 @@ export default function RightWorkspaceSidebar({
 				<SidebarHeader className="p-4 border-b border-gray">
 					<div className="flex items-center justify-between">
 						<h2 className="font-semibold">
-							{selectedAgent?.agentName}
+							{selectedAgent?.agentName || "Test Agent"}
 						</h2>
 						<p className="text-xs text-muted-foreground">
 							NFTs: {nfts.length}
@@ -1103,9 +1034,8 @@ export default function RightWorkspaceSidebar({
 						<PromptInputSection
 							onRunTest={handleRunTest}
 							placeholder={`Test ${selectedAgent.agentName}...`}
-							buttonText={
-								testStatus.isRunning ? "Running..." : "Run Test"
-							}
+							buttonText="Run Test"
+							isProcessing={testStatus.isRunning}
 						/>
 					)}
 
@@ -1127,6 +1057,24 @@ export default function RightWorkspaceSidebar({
 											progress={testStatus.progress}
 											currentStep={currentStepToShow}
 											testResults={testResults}
+											isLoading={
+												testStatus.isRunning
+													? true
+													: false
+											}
+											subnetResponses={subnetResponses}
+											workflow={
+												selectedAgent?.subnets?.map(
+													(subnet, index) => ({
+														id:
+															subnet.unique_id ||
+															`subnet-${index}`,
+														itemID: subnet.itemID,
+														subnetName:
+															subnet.subnetName,
+													})
+												) || []
+											}
 										/>
 									</TabsContent>
 

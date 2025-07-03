@@ -1,6 +1,11 @@
 export interface AgentTestStatus {
 	isRunning: boolean;
-	status: "idle" | "running" | "completed" | "failed";
+	status:
+		| "idle"
+		| "initializing"
+		| "processing"
+		| "test completed"
+		| "failed";
 	progress: number;
 	message?: string;
 	logs?: string[];

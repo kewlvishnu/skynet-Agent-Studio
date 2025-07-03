@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Play } from "lucide-react";
 import { useState } from "react";
@@ -9,21 +8,16 @@ interface PromptInputSectionProps {
 	onRunTest?: (prompt: string) => void;
 	placeholder?: string;
 	buttonText?: string;
-	mode?: "prompt" | "upload" | "both";
+	isProcessing?: boolean;
 }
 
 export default function PromptInputSection({
 	onRunTest,
 	placeholder = "Enter your prompt here...",
 	buttonText = "Run Test",
-	mode = "both",
+	isProcessing = false,
 }: PromptInputSectionProps) {
-	const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
 	const [prompt, setPrompt] = useState<string>("");
-
-	const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-		setSelectedFiles(event.target.files);
-	};
 
 	const handleRunClick = () => {
 		if (onRunTest) {
@@ -34,53 +28,28 @@ export default function PromptInputSection({
 	return (
 		<div className="p-4 space-y-4 flex-shrink-0">
 			<div className="space-y-3">
-				{(mode === "prompt" || mode === "both") && (
-					<div className="space-y-1">
-						<Label
-							htmlFor="prompt-input"
-							className="text-sm font-medium"
-						>
-							Enter Prompt
-						</Label>
-						<Textarea
-							id="prompt-input"
-							placeholder={placeholder}
-							value={prompt}
-							onChange={(e) => setPrompt(e.target.value)}
-							className="resize-none focus-visible:ring-0 focus-visible:ring-offset-0"
-							rows={mode === "both" ? 3 : 4}
-						/>
-					</div>
-				)}
-
-				{(mode === "upload" || mode === "both") && (
-					<div className="space-y-1">
-						<Label
-							htmlFor="file-upload"
-							className="text-sm font-medium"
-						>
-							Upload Files
-						</Label>
-						<Input
-							id="file-upload"
-							type="file"
-							multiple
-							onChange={handleFileChange}
-							className="cursor-pointer"
-						/>
-						{selectedFiles && selectedFiles.length > 0 && (
-							<div className="text-xs text-muted-foreground">
-								{selectedFiles.length} file(s) selected
-							</div>
-						)}
-					</div>
-				)}
+				<div className="space-y-1">
+					<Label
+						htmlFor="prompt-input"
+						className="text-sm font-medium"
+					>
+						Enter Prompt
+					</Label>
+					<Textarea
+						id="prompt-input"
+						placeholder={placeholder}
+						value={prompt}
+						onChange={(e) => setPrompt(e.target.value)}
+						className="resize-none focus-visible:ring-0 focus-visible:ring-offset-0 border-gray"
+						rows={4}
+					/>
+				</div>
 			</div>
 
 			<Button
 				className="w-full"
 				onClick={handleRunClick}
-				disabled={!prompt.trim()}
+				disabled={!prompt.trim() || isProcessing}
 			>
 				<Play className="h-4 w-4" />
 				{buttonText}

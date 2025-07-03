@@ -15,7 +15,7 @@ export default function TestProgressIndicator({
 		<div className="border border-gray rounded-lg mx-4 p-2.5 space-y-1.5">
 			<div>
 				<div className="flex justify-between items-center mb-1">
-					<span className="text-sm font-medium text-gray-800">
+					<span className="text-sm font-medium text-gray-800 capitalize">
 						{status}
 					</span>
 					<span className="text-xs text-gray-600">{progress}%</span>
@@ -28,7 +28,9 @@ export default function TestProgressIndicator({
 					<span className="font-medium text-gray-800">
 						Current step:
 					</span>{" "}
-					<span className="text-gray-700">{currentStep}</span>
+					<span className="text-gray-700 capitalize">
+						{currentStep}
+					</span>
 				</div>
 			)}
 		</div>

@@ -4,8 +4,8 @@ import {
 	AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { CheckCheck, Download, FileText, Image, Maximize2 } from "lucide-react";
+import { CheckCheck, Download, FileText, Image } from "lucide-react";
+import ExpandableTextArea from "@/components/common/expandable-text-area";
 
 interface TestAccordionItemProps {
 	testNumber: number;
@@ -15,6 +15,8 @@ interface TestAccordionItemProps {
 	hasImage?: boolean;
 	fileName?: string;
 	responseData?: string;
+	fileData?: string | Blob;
+	contentType?: string;
 }
 
 export default function TestAccordionItem({
@@ -25,7 +27,91 @@ export default function TestAccordionItem({
 	hasImage = true,
 	fileName = "image.png",
 	responseData = "lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.",
+	fileData,
+	contentType,
 }: TestAccordionItemProps) {
+	const handleDownload = () => {
+		if (!fileData) {
+			const blob = new Blob([responseData], { type: "text/plain" });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = fileName;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			URL.revokeObjectURL(url);
+			return;
+		}
+
+		if (typeof fileData === "string" && fileData.startsWith("data:")) {
+			try {
+				const base64Data = fileData.split(",")[1];
+				const binaryString = atob(base64Data);
+				const bytes = new Uint8Array(binaryString.length);
+				for (let i = 0; i < binaryString.length; i++) {
+					bytes[i] = binaryString.charCodeAt(i);
+				}
+
+				const mimeType =
+					fileData.split(";")[0].split(":")[1] ||
+					contentType ||
+					"application/octet-stream";
+				const blob = new Blob([bytes], { type: mimeType });
+
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement("a");
+				a.href = url;
+				a.download = fileName;
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+				URL.revokeObjectURL(url);
+				return;
+			} catch (error) {
+				console.error("Error processing base64 data:", error);
+
+				// Fallback to treating as plain text
+				const blob = new Blob([fileData], { type: "text/plain" });
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement("a");
+				a.href = url;
+				a.download = fileName;
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+				URL.revokeObjectURL(url);
+			}
+			return;
+		}
+
+		if (typeof fileData === "string") {
+			const blob = new Blob([fileData], {
+				type: contentType || "text/plain",
+			});
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = fileName;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			URL.revokeObjectURL(url);
+			return;
+		}
+
+		if (fileData instanceof Blob) {
+			const url = URL.createObjectURL(fileData);
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = fileName;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			URL.revokeObjectURL(url);
+		}
+	};
+
 	return (
 		<AccordionItem
 			value={`item-${testNumber}`}
@@ -34,7 +120,7 @@ export default function TestAccordionItem({
 			<AccordionTrigger className="bg-sidebar-accent px-2 py-4 w-full flex items-center hover:underline-none data-[state=open]:border-b data-[state=open]:border-b-gray">
 				<div className="flex items-center gap-2">
 					<CheckCheck className="h-4 w-4 text-green-500" />
-					<h6 className="text-base font-medium">
+					<h6 className="text-base font-medium capitalize">
 						{subnetName && `${subnetName}`}
 					</h6>
 					<div className="text-[14px] text-muted-foreground">
@@ -44,26 +130,11 @@ export default function TestAccordionItem({
 			</AccordionTrigger>
 			<AccordionContent className="px-2 py-4">
 				<div className="space-y-6">
-					<div className="space-y-1">
-						<div className="flex items-center gap-2 justify-between">
-							<h4 className="text-sm font-medium text-foreground">
-								Response
-							</h4>
-							<Button
-								variant="ghost"
-								size="sm"
-								className="h-6 px-2"
-							>
-								<Maximize2 className="h-3 w-3" />
-							</Button>
-						</div>
-						<Textarea
-							className="text-muted-foreground text-sm px-2"
-							rows={4}
-							value={response}
-							readOnly
-						/>
-					</div>
+					<ExpandableTextArea
+						title="Response"
+						value={response}
+						readOnly
+					/>
 
 					<div className="space-y-2">
 						<h4 className="text-sm font-medium text-foreground">
@@ -78,32 +149,38 @@ export default function TestAccordionItem({
 								)}
 								<span className="text-sm">{fileName}</span>
 							</div>
-							<Button variant="ghost" size="icon">
+							<Button
+								variant="ghost"
+								size="icon"
+								onClick={handleDownload}
+								title="Download file"
+							>
 								<Download className="h-4 w-4" />
 							</Button>
 						</div>
+						<div className="px-2">
+							{hasImage && fileData && (
+								<div className="w-1/2 rounded border-gray overflow-hidden">
+									<img
+										src={
+											typeof fileData === "string"
+												? fileData
+												: URL.createObjectURL(fileData)
+										}
+										alt="Generated file preview"
+										className="w-full h-full object-cover"
+									/>
+								</div>
+							)}
+						</div>
 					</div>
 
-					<div className="space-y-2">
-						<div className="flex items-center gap-2 justify-between">
-							<h4 className="text-sm font-medium text-foreground">
-								Response Data
-							</h4>
-							<Button
-								variant="ghost"
-								size="sm"
-								className="h-6 px-2"
-							>
-								<Maximize2 className="h-3 w-3" />
-							</Button>
-						</div>
-						<Textarea
-							className="text-xs text-muted-foreground overflow-x-auto px-2"
-							rows={4}
-							value={responseData}
-							readOnly
-						/>
-					</div>
+					<ExpandableTextArea
+						title="Response Data"
+						value={responseData}
+						readOnly
+						className="text-xs text-muted-foreground overflow-x-auto"
+					/>
 				</div>
 			</AccordionContent>
 		</AccordionItem>
