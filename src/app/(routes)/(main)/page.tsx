@@ -40,17 +40,30 @@ function LeftWorkspaceSidebar() {
 
 function RightSidebar({
 	onWidthChange,
+	selectedAgent,
 }: {
 	onWidthChange?: (width: number) => void;
+	selectedAgent: any;
 }) {
 	return (
 		<>
-			<RightWorkspaceSidebar onWidthChange={onWidthChange} />
+			<RightWorkspaceSidebar
+				onWidthChange={onWidthChange}
+				selectedAgent={selectedAgent}
+			/>
 		</>
 	);
 }
 
-function FlowCanvas({ rightSidebarWidth }: { rightSidebarWidth: number }) {
+function FlowCanvas({
+	rightSidebarWidth,
+	selectedAgent,
+	setSelectedAgent,
+}: {
+	rightSidebarWidth: number;
+	selectedAgent: any;
+	setSelectedAgent: (agent: any) => void;
+}) {
 	const { screenToFlowPosition } = useReactFlow();
 	const { open } = useSidebar();
 	const [nodes, setNodes] = useState<Node[]>([]);
@@ -335,6 +348,13 @@ function FlowCanvas({ rightSidebarWidth }: { rightSidebarWidth: number }) {
 							};
 
 							setNodes((prev) => [...prev, containerNode]);
+
+							// Set this agent as the selected agent for testing
+							setSelectedAgent({
+								id: containerId,
+								agentName: agentDetail.name,
+								subnets: agentDetail.subnet_list, // Keep the full subnet data
+							});
 
 							// If agent has subnet_list, create child nodes inside the container
 							if (agentDetail.subnet_list && agentDetail.layout) {
@@ -737,6 +757,11 @@ function FlowCanvas({ rightSidebarWidth }: { rightSidebarWidth: number }) {
 
 export default function Home() {
 	const [rightSidebarWidth, setRightSidebarWidth] = useState(0);
+	const [selectedAgent, setSelectedAgent] = useState<{
+		id: string;
+		agentName: string;
+		subnets: any[];
+	} | null>(null);
 
 	const handleRightSidebarWidthChange = useCallback((width: number) => {
 		setRightSidebarWidth(width);
@@ -749,11 +774,18 @@ export default function Home() {
 			</SidebarProvider>
 
 			<ReactFlowProvider>
-				<FlowCanvas rightSidebarWidth={rightSidebarWidth} />
+				<FlowCanvas
+					rightSidebarWidth={rightSidebarWidth}
+					selectedAgent={selectedAgent}
+					setSelectedAgent={setSelectedAgent}
+				/>
 			</ReactFlowProvider>
 
 			<SidebarProvider className="h-full w-fit">
-				<RightSidebar onWidthChange={handleRightSidebarWidthChange} />
+				<RightSidebar
+					onWidthChange={handleRightSidebarWidthChange}
+					selectedAgent={selectedAgent}
+				/>
 			</SidebarProvider>
 		</div>
 	);

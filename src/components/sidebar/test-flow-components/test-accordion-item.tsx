@@ -10,6 +10,7 @@ import { CheckCheck, Download, FileText, Image, Maximize2 } from "lucide-react";
 interface TestAccordionItemProps {
 	testNumber: number;
 	testId: string;
+	subnetName?: string;
 	response: string;
 	hasImage?: boolean;
 	fileName?: string;
@@ -19,6 +20,7 @@ interface TestAccordionItemProps {
 export default function TestAccordionItem({
 	testNumber,
 	testId,
+	subnetName,
 	response,
 	hasImage = true,
 	fileName = "image.png",
@@ -32,7 +34,9 @@ export default function TestAccordionItem({
 			<AccordionTrigger className="bg-sidebar-accent px-2 py-4 w-full flex items-center hover:underline-none data-[state=open]:border-b data-[state=open]:border-b-gray">
 				<div className="flex items-center gap-2">
 					<CheckCheck className="h-4 w-4 text-green-500" />
-					<h6 className="text-base font-medium">Test {testNumber}</h6>
+					<h6 className="text-base font-medium">
+						{subnetName && `${subnetName}`}
+					</h6>
 					<div className="text-[14px] text-muted-foreground">
 						[ID: {testId}]
 					</div>

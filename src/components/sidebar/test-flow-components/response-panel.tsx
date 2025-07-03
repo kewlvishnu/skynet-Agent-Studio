@@ -6,6 +6,7 @@ import TestAccordionItem from "./test-accordion-item";
 export interface TestResult {
 	id: number;
 	testId: string;
+	subnetName?: string;
 	response: string;
 	hasImage?: boolean;
 	fileName?: string;
@@ -40,6 +41,7 @@ export default function ResponsePanel({
 								key={test.id}
 								testNumber={test.id}
 								testId={test.testId}
+								subnetName={test.subnetName}
 								response={test.response}
 								hasImage={test.hasImage}
 								fileName={test.fileName}

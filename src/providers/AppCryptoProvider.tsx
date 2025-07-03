@@ -37,11 +37,31 @@ export function AppCryptoContextProvider({ children }: Props) {
 
 	const initAppCrypto = useCallback(async () => {
 		try {
-			console.log("initAppCrypto");
+			console.log("initAppCrypto - starting initialization");
+
+			if (!provider) {
+				throw new Error("No provider available for initialization");
+			}
+
 			const ethersProvider = new ethers.BrowserProvider(provider!);
 			const signer = await ethersProvider.getSigner();
 			const selectedAccount = signer.address;
 			console.log("selectedAccount", selectedAccount);
+
+			// Validate that we're on the correct chain (619 for Skynet)
+			const network = await ethersProvider.getNetwork();
+			console.log("Current network:", network.chainId);
+
+			if (network.chainId !== 619n) {
+				console.warn(
+					`Wrong network detected: ${network.chainId}, expected: 619`
+				);
+				toast.error("Please switch to Skynet network (Chain ID: 619)", {
+					position: "top-right",
+				});
+				return;
+			}
+
 			const contractInstance = new SkyEtherContractService(
 				provider! as never,
 				signer,
@@ -57,7 +77,7 @@ export function AppCryptoContextProvider({ children }: Props) {
 				},
 			};
 
-			console.log("before create skyMainBrowser");
+			console.log("Creating skyMainBrowser instance...");
 			const skyMainBrowser = new SkyMainBrowser(
 				contractInstance!,
 				contractInstance.selectedAccount,
@@ -68,20 +88,36 @@ export function AppCryptoContextProvider({ children }: Props) {
 				defaultEnvConfig
 			);
 
-			console.log("after create skyMainBrowser");
+			console.log("Initializing skyMainBrowser...");
 			await skyMainBrowser.init(true);
 
-			console.log("SkyMainBrowser:", skyMainBrowser);
+			console.log("SkyMainBrowser initialized successfully:", {
+				account: skyMainBrowser.contractService.selectedAccount,
+				chainId: network.chainId.toString(),
+			});
+
 			setSkyBrowser(skyMainBrowser);
+			toast.success("Wallet connected successfully!", {
+				position: "top-right",
+			});
 		} catch (err: unknown) {
 			const error: Error = err as Error;
-			console.log("error", error);
-			toast.error(
-				"Something went wrong. Please try reloading the page in a few minutes.",
-				{
-					position: "top-right",
-				}
-			);
+			console.error("AppCrypto initialization error:", error);
+
+			let errorMessage = "Failed to initialize wallet connection";
+
+			if (error.message.includes("user rejected")) {
+				errorMessage = "Connection was rejected. Please try again.";
+			} else if (error.message.includes("network")) {
+				errorMessage =
+					"Network error. Please check your connection and try again.";
+			} else if (error.message.includes("Chain")) {
+				errorMessage = "Please switch to the Skynet network.";
+			}
+
+			toast.error(errorMessage, {
+				position: "top-right",
+			});
 		}
 	}, [provider]);
 

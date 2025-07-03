@@ -6,7 +6,7 @@ import { Play } from "lucide-react";
 import { useState } from "react";
 
 interface PromptInputSectionProps {
-	onRunTest?: () => void;
+	onRunTest?: (prompt: string) => void;
 	placeholder?: string;
 	buttonText?: string;
 	mode?: "prompt" | "upload" | "both";
@@ -19,9 +19,16 @@ export default function PromptInputSection({
 	mode = "both",
 }: PromptInputSectionProps) {
 	const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+	const [prompt, setPrompt] = useState<string>("");
 
 	const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		setSelectedFiles(event.target.files);
+	};
+
+	const handleRunClick = () => {
+		if (onRunTest) {
+			onRunTest(prompt);
+		}
 	};
 
 	return (
@@ -29,12 +36,17 @@ export default function PromptInputSection({
 			<div className="space-y-3">
 				{(mode === "prompt" || mode === "both") && (
 					<div className="space-y-1">
-						<Label htmlFor="prompt-input" className="text-sm font-medium">
+						<Label
+							htmlFor="prompt-input"
+							className="text-sm font-medium"
+						>
 							Enter Prompt
 						</Label>
 						<Textarea
 							id="prompt-input"
 							placeholder={placeholder}
+							value={prompt}
+							onChange={(e) => setPrompt(e.target.value)}
 							className="resize-none focus-visible:ring-0 focus-visible:ring-offset-0"
 							rows={mode === "both" ? 3 : 4}
 						/>
@@ -43,7 +55,10 @@ export default function PromptInputSection({
 
 				{(mode === "upload" || mode === "both") && (
 					<div className="space-y-1">
-						<Label htmlFor="file-upload" className="text-sm font-medium">
+						<Label
+							htmlFor="file-upload"
+							className="text-sm font-medium"
+						>
 							Upload Files
 						</Label>
 						<Input
@@ -62,7 +77,11 @@ export default function PromptInputSection({
 				)}
 			</div>
 
-			<Button className="w-full" onClick={onRunTest}>
+			<Button
+				className="w-full"
+				onClick={handleRunClick}
+				disabled={!prompt.trim()}
+			>
 				<Play className="h-4 w-4" />
 				{buttonText}
 			</Button>
