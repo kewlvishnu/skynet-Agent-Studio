@@ -1,8 +1,14 @@
 "use client";
 
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, {
+	useState,
+	useRef,
+	useCallback,
+	useEffect,
+	useMemo,
+} from "react";
 import { Button } from "@/components/ui/button";
-import { Position, NodeResizer, useReactFlow, Node } from "@xyflow/react";
+import { Position, useReactFlow, Node, useStore } from "@xyflow/react";
 import { Bot, Trash, Maximize2, Minimize2 } from "lucide-react";
 import { CustomHandle } from "@/components/handle/custom-handle";
 import { getSubnetById } from "@/controllers/subnets/subnets.queries";
@@ -21,6 +27,18 @@ interface AgentContainerProps {
 	selected?: boolean;
 }
 
+// Debounce function to limit update frequency
+function debounce<T extends (...args: any[]) => any>(
+	func: T,
+	wait: number
+): (...args: Parameters<T>) => void {
+	let timeout: NodeJS.Timeout;
+	return (...args: Parameters<T>) => {
+		clearTimeout(timeout);
+		timeout = setTimeout(() => func(...args), wait);
+	};
+}
+
 export default function AgentContainer({
 	id,
 	data,
@@ -28,21 +46,24 @@ export default function AgentContainer({
 }: AgentContainerProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const [containerSize, setContainerSize] = useState({
-		width: 1200,
-		height: 800,
+		width: 800,
+		height: 600,
 	});
-	const [isManuallyResized, setIsManuallyResized] = useState(false);
+	const [isTransitioning, setIsTransitioning] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const { getNodes, setNodes } = useReactFlow();
+
+	// Use React Flow's store to subscribe to node changes more efficiently
+	const childNodes = useStore((state) =>
+		state.nodes.filter((node) => node.parentId === id)
+	);
 
 	const toggleExpanded = () => {
 		const newExpandedState = !isExpanded;
 		setIsExpanded(newExpandedState);
+		setIsTransitioning(true);
 
 		// Hide/show child nodes when container is collapsed/expanded
-		const nodes = getNodes();
-		const childNodes = nodes.filter((node) => node.parentId === id);
-
 		if (childNodes.length > 0) {
 			setNodes((nodes) =>
 				nodes.map((node) => {
@@ -61,7 +82,10 @@ export default function AgentContainer({
 		if (newExpandedState) {
 			setTimeout(() => {
 				updateContainerSize();
-			}, 100);
+				setIsTransitioning(false);
+			}, 300);
+		} else {
+			setIsTransitioning(false);
 		}
 	};
 
@@ -71,124 +95,14 @@ export default function AgentContainer({
 
 	const agentName = data.agentName || data.label || "Agent Container";
 
-	// Handle drag over - COMMENTED OUT to disable ondrop functionality
-	// const handleDragOver = useCallback((e: React.DragEvent) => {
-	// 	e.preventDefault();
-	// 	e.stopPropagation();
-	// 	e.dataTransfer.dropEffect = "move";
-	// }, []);
-
-	// Handle drop of tools into container - COMMENTED OUT to disable ondrop functionality
-	// const handleDrop = useCallback(
-	// 	async (e: React.DragEvent) => {
-	// 		e.preventDefault();
-	// 		e.stopPropagation();
-
-	// 		if (!isExpanded) return; // Don't allow drops on collapsed containers
-
-	// 		try {
-	// 			const droppedData = JSON.parse(
-	// 				e.dataTransfer.getData("application/reactflow")
-	// 			);
-
-	// 			// Only handle tools (subnets) for now
-	// 			if (droppedData.unique_id && droppedData.subnet_name) {
-	// 				const rect = containerRef.current?.getBoundingClientRect();
-	// 				if (!rect) return;
-
-	// 				// Calculate position relative to container
-	// 				const containerPosition = {
-	// 					x: e.clientX - rect.left - 50, // Adjust for padding
-	// 					y: e.clientY - rect.top - 80, // Adjust for header
-	// 				};
-
-	// 				const nodeId = `tool-${Date.now()}`;
-	// 				const timestamp = Date.now();
-
-	// 				// Create tool node as child of this container
-	// 				const toolNode: Node = {
-	// 					id: nodeId,
-	// 					type: "tool",
-	// 					position: containerPosition,
-	// 					data: {
-	// 						...droppedData,
-	// 						onDelete: data.onDelete,
-	// 						defaultExpanded: false, // Tools dropped into containers are collapsed
-	// 					},
-	// 					parentId: id,
-	// 					extent: "parent" as const,
-	// 				} as Node;
-
-	// 				setNodes((prev) => [...prev, toolNode]);
-
-	// 				// Update container's child count
-	// 				const currentChildCount = data.childNodeCount || 0;
-	// 				setNodes((prev) =>
-	// 					prev.map((node) =>
-	// 						node.id === id
-	// 							? {
-	// 									...node,
-	// 									data: {
-	// 										...node.data,
-	// 										childNodeCount:
-	// 											currentChildCount + 1,
-	// 									},
-	// 							  }
-	// 							: node
-	// 					)
-	// 				);
-
-	// 				// Fetch detailed tool information
-	// 				try {
-	// 					const detailedResponse = await getSubnetById(
-	// 						droppedData.unique_id
-	// 					);
-	// 					if (detailedResponse.success) {
-	// 						const toolDetail = detailedResponse.data;
-	// 						setNodes((prev) =>
-	// 							prev.map((node) =>
-	// 								node.id === nodeId
-	// 									? {
-	// 											...node,
-	// 											data: {
-	// 												...node.data,
-	// 												...toolDetail,
-	// 												onDelete: data.onDelete,
-	// 												defaultExpanded: false,
-	// 											},
-	// 									  }
-	// 									: node
-	// 							)
-	// 						);
-	// 					}
-	// 				} catch (error) {
-	// 					console.error("Error fetching tool details:", error);
-	// 				}
-	// 			}
-	// 		} catch (error) {
-	// 			console.error("Error parsing dropped data:", error);
-	// 		}
-	// 	},
-	// 	[id, data.onDelete, data.childNodeCount, setNodes, isExpanded]
-	// );
-
 	const updateContainerSize = useCallback(() => {
-		// Don't auto-resize if user has manually resized
-		if (isManuallyResized && isExpanded) {
-			return;
-		}
-
-		const nodes = getNodes();
-		const childNodes = nodes.filter((node) => node.parentId === id);
-
 		if (!isExpanded) {
-			const minSize = { width: 400, height: 200 };
+			const minSize = { width: 350, height: 150 };
 			if (
 				containerSize.width !== minSize.width ||
 				containerSize.height !== minSize.height
 			) {
 				setContainerSize(minSize);
-				setIsManuallyResized(false); // Reset manual resize flag when collapsing
 				setNodes((nodes) =>
 					nodes.map((node) =>
 						node.id === id
@@ -208,12 +122,13 @@ export default function AgentContainer({
 		}
 
 		if (childNodes.length === 0) {
-			const minExpandedSize = { width: 1200, height: 800 };
+			// Reasonable default size when empty
+			const emptySize = { width: 800, height: 600 };
 			if (
-				containerSize.width !== minExpandedSize.width ||
-				containerSize.height !== minExpandedSize.height
+				containerSize.width !== emptySize.width ||
+				containerSize.height !== emptySize.height
 			) {
-				setContainerSize(minExpandedSize);
+				setContainerSize(emptySize);
 				setNodes((nodes) =>
 					nodes.map((node) =>
 						node.id === id
@@ -221,8 +136,8 @@ export default function AgentContainer({
 									...node,
 									style: {
 										...node.style,
-										width: minExpandedSize.width,
-										height: minExpandedSize.height,
+										width: emptySize.width,
+										height: emptySize.height,
 									},
 							  }
 							: node
@@ -232,14 +147,11 @@ export default function AgentContainer({
 			return;
 		}
 
-		// Calculate minimum width for 2-column grid layout
-		const nodeWidth = 400;
-		const nodeSpacing = 20;
-		const padding = 100;
-		const minGridWidth = 2 * nodeWidth + nodeSpacing + padding;
-
-		let maxX = Math.max(1200, minGridWidth);
-		let maxY = 800;
+		// Find the bounds of all child nodes
+		let minX = Infinity;
+		let minY = Infinity;
+		let maxX = -Infinity;
+		let maxY = -Infinity;
 
 		childNodes.forEach((node) => {
 			let nodeWidth = node.measured?.width || 400;
@@ -256,19 +168,39 @@ export default function AgentContainer({
 				nodeHeight = node.measured?.height || 200;
 			}
 
+			const nodeLeft = node.position.x;
+			const nodeTop = node.position.y;
 			const nodeRight = node.position.x + nodeWidth;
 			const nodeBottom = node.position.y + nodeHeight;
 
-			maxX = Math.max(maxX, nodeRight + 80);
-			maxY = Math.max(maxY, nodeBottom + 80);
+			minX = Math.min(minX, nodeLeft);
+			minY = Math.min(minY, nodeTop);
+			maxX = Math.max(maxX, nodeRight);
+			maxY = Math.max(maxY, nodeBottom);
 		});
 
-		const newSize = { width: maxX, height: maxY };
+		// Add padding around the nodes
+		const padding = 80;
+		const topPadding = 100;
 
-		// Only update if size actually changed
+		// Calculate the actual needed size
+		const width = maxX - minX + 2 * padding;
+		const height = maxY - minY + topPadding + padding;
+
+		// Ensure minimum sizes
+		const minWidth = 600;
+		const minHeight = 400;
+
+		const newSize = {
+			width: Math.max(width, minWidth),
+			height: Math.max(height, minHeight),
+		};
+
+		// Only update if size actually changed significantly (avoid micro-updates)
+		const threshold = 5; // pixels
 		if (
-			newSize.width !== containerSize.width ||
-			newSize.height !== containerSize.height
+			Math.abs(newSize.width - containerSize.width) > threshold ||
+			Math.abs(newSize.height - containerSize.height) > threshold
 		) {
 			setContainerSize(newSize);
 			setNodes((nodes) =>
@@ -286,69 +218,45 @@ export default function AgentContainer({
 				)
 			);
 		}
-	}, [id, getNodes, setNodes, containerSize, isExpanded, isManuallyResized]);
+	}, [id, setNodes, containerSize, isExpanded, childNodes]);
 
-	useEffect(() => {
-		updateContainerSize();
-	}, [data.childNodeCount, isExpanded, updateContainerSize]);
+	// Debounced version of updateContainerSize for performance
+	const debouncedUpdateContainerSize = useMemo(
+		() => debounce(updateContainerSize, 100),
+		[updateContainerSize]
+	);
 
-	// Periodic check for node movements
+	// Update on child node changes
 	useEffect(() => {
-		const interval = setInterval(() => {
+		debouncedUpdateContainerSize();
+	}, [childNodes, debouncedUpdateContainerSize]);
+
+	// Update when expansion state changes
+	useEffect(() => {
+		if (!isTransitioning) {
 			updateContainerSize();
-		}, 500);
-
-		return () => clearInterval(interval);
-	}, [updateContainerSize]);
+		}
+	}, [isExpanded, updateContainerSize, isTransitioning]);
 
 	return (
 		<div
 			ref={containerRef}
-			className="group relative w-full h-full"
+			className="group relative w-full h-full rounded-xl border-2 border-dashed border-royal-blue/60"
 			style={{
-				minWidth: isExpanded ? "1200px" : "400px",
-				minHeight: isExpanded ? "800px" : "200px",
 				width: `${containerSize.width}px`,
 				height: `${containerSize.height}px`,
+				transition:
+					isTransitioning || !isExpanded
+						? "width 0.3s ease-out, height 0.3s ease-out"
+						: "width 0.2s ease-out, height 0.2s ease-out",
 			}}
 		>
-			<NodeResizer
-				color="rgb(59, 130, 246)"
-				handleClassName="!rounded-[2px] !size-3"
-				lineClassName="!border-dashed !border-[1.5px]"
-				isVisible={true}
-				minWidth={isExpanded ? 1200 : 400}
-				minHeight={isExpanded ? 800 : 200}
-				onResize={(event, data) => {
-					const newSize = {
-						width: data.width,
-						height: data.height,
-					};
-					setContainerSize(newSize);
-					setIsManuallyResized(true);
-
-					setNodes((nodes) =>
-						nodes.map((node) =>
-							node.id === id
-								? {
-										...node,
-										style: {
-											...node.style,
-											width: newSize.width,
-											height: newSize.height,
-										},
-								  }
-								: node
-						)
-					);
-				}}
-			/>
-
-			<div
-				className="w-full h-full rounded-xl relative hover:border-royal-blue transition-all duration-300"
-				// ondrop functionality disabled for agent container
-			>
-				<div className="absolute -top-8 left-5 z-10">
+			<div className="w-full h-full rounded-xl relative hover:border-royal-blue transition-all duration-300">
+				<div
+					className={`absolute -top-8 z-10 ${
+						isExpanded ? "left-5" : "left-1/2 -translate-x-1/2"
+					}`}
+				>
 					<div
 						className={`bg-theme border-2 border-dashed border-royal-blue/60 rounded-lg p-4 flex items-center [border-spacing:1px] ${
 							isExpanded ? "gap-8" : "gap-6"
@@ -358,7 +266,7 @@ export default function AgentContainer({
 							<div className="w-6 h-6 bg-primary rounded-md flex items-center justify-center">
 								<Bot className="w-4 h-4 text-white" />
 							</div>
-							<span className="text-sm font-medium text-foreground">
+							<span className="text-sm font-medium text-foreground whitespace-nowrap">
 								{agentName}
 							</span>
 						</div>
@@ -396,12 +304,8 @@ export default function AgentContainer({
 					{isExpanded ? (
 						<div className="w-full h-full flex flex-col">
 							{/* Show placeholder when empty */}
-							{(!data.childNodeCount ||
-								data.childNodeCount === 0) && (
-								<div
-									className="flex-1 border border-dashed border-border/50 rounded-lg bg-background/20 flex items-center justify-center hover:bg-background/30 hover:border-brand-blue/30 transition-all duration-200"
-									// ondrop functionality disabled for agent container
-								>
+							{childNodes.length === 0 && (
+								<div className="flex-1 border border-dashed border-border/50 rounded-lg bg-background/20 flex items-center justify-center hover:bg-background/30 hover:border-brand-blue/30 transition-all duration-200">
 									<div className="text-center text-muted-foreground">
 										<Bot className="w-12 h-12 mx-auto mb-2 opacity-50" />
 										<p className="text-sm">
@@ -414,7 +318,7 @@ export default function AgentContainer({
 								</div>
 							)}
 
-							{data.childNodeCount && data.childNodeCount > 0 && (
+							{childNodes.length > 0 && (
 								<div className="flex-1 rounded-lg bg-background/10"></div>
 							)}
 

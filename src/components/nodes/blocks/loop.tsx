@@ -1,10 +1,16 @@
 "use client";
 
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, {
+	useState,
+	useRef,
+	useCallback,
+	useEffect,
+	useMemo,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Position, NodeResizer, useReactFlow, Node } from "@xyflow/react";
+import { Position, useReactFlow, Node, useStore } from "@xyflow/react";
 import {
 	RotateCcw,
 	Trash,
@@ -47,16 +53,33 @@ interface LoopNodeProps {
 	};
 }
 
+// Debounce function to limit update frequency
+function debounce<T extends (...args: any[]) => any>(
+	func: T,
+	wait: number
+): (...args: Parameters<T>) => void {
+	let timeout: NodeJS.Timeout;
+	return (...args: Parameters<T>) => {
+		clearTimeout(timeout);
+		timeout = setTimeout(() => func(...args), wait);
+	};
+}
+
 export default function LoopNode({ id, data }: LoopNodeProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
-	const { setNodes, getNodes } = useReactFlow();
+	const { setNodes, getNodes, screenToFlowPosition } = useReactFlow();
 	const [isExpanded, setIsExpanded] = useState(true);
-	const [isManuallyResized, setIsManuallyResized] = useState(false);
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+	const [isTransitioning, setIsTransitioning] = useState(false);
 	const [containerSize, setContainerSize] = useState({
 		width: 900,
 		height: 400,
 	});
+
+	// Use React Flow's store to subscribe to node changes more efficiently
+	const childNodes = useStore((state) =>
+		state.nodes.filter((node) => node.parentId === id)
+	);
 
 	const loopName = data.loopName || data.label || "Loop Container";
 	const loopType = data.loopType || "count";
@@ -71,7 +94,6 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 		e.dataTransfer.dropEffect = "move";
 	}, []);
 
-	// Handle drop of tools and blocks into container
 	const handleDrop = useCallback(
 		async (e: React.DragEvent) => {
 			e.preventDefault();
@@ -84,53 +106,71 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 					e.dataTransfer.getData("application/reactflow")
 				);
 
-				// Get existing child nodes to calculate positioning
-				const nodes = getNodes();
-				const childNodes = nodes.filter((node) => node.parentId === id);
+				// Calculate relative position based on where the user dropped
+				const calculateRelativePosition = () => {
+					if (!containerRef.current) {
+						console.log(
+							"Container ref not found, using fallback position"
+						);
+						return { x: 50, y: 50 };
+					}
 
-				// Calculate automatic positioning for new node
-				const calculatePosition = () => {
-					const padding = 50;
-					const nodeSpacing = 40; // Increased horizontal spacing between nodes
-					const nodeWidth = 350; // Node width
-					const nodeHeight = 120; // Height for collapsed nodes
+					// Get the container element's bounding rect
+					const containerRect =
+						containerRef.current.getBoundingClientRect();
 
-					// Ensure at least 2 nodes per row, adjust container if needed
-					const minContainerWidth =
-						2 * nodeWidth + 3 * nodeSpacing + 2 * padding;
-					const effectiveWidth = Math.max(
-						containerSize.width,
-						minContainerWidth
-					);
+					// Get the parent node from React Flow
+					const parentNode = getNodes().find((n) => n.id === id);
+					if (!parentNode) {
+						console.log("Parent node not found");
+						return { x: 50, y: 50 };
+					}
 
-					const nodesPerRow = Math.max(
-						2,
-						Math.floor(
-							(effectiveWidth - 2 * padding) /
-								(nodeWidth + nodeSpacing)
-						)
-					);
-
-					const row = Math.floor(childNodes.length / nodesPerRow);
-					const col = childNodes.length % nodesPerRow;
-
-					console.log("Position calculation:", {
-						childNodesCount: childNodes.length,
-						nodesPerRow,
-						row,
-						col,
-						containerWidth: containerSize.width,
-						effectiveWidth,
-						spacing: nodeSpacing,
+					// Convert screen coordinates to flow coordinates
+					const flowPosition = screenToFlowPosition({
+						x: e.clientX,
+						y: e.clientY,
 					});
 
-					return {
-						x: padding + col * (nodeWidth + nodeSpacing),
-						y: padding + 80 + row * (nodeHeight + nodeSpacing), // Extra space for header and controls
+					// Calculate the relative position within the parent node
+					// The child position is relative to the parent's top-left corner
+					const relativeX = flowPosition.x - parentNode.position.x;
+					const relativeY = flowPosition.y - parentNode.position.y;
+
+					console.log("Drop calculation:", {
+						screenPos: { x: e.clientX, y: e.clientY },
+						flowPos: flowPosition,
+						parentPos: parentNode.position,
+						relativePos: { x: relativeX, y: relativeY },
+					});
+
+					// Define node dimensions
+					const nodeWidth = 350;
+					const nodeHeight = 120;
+
+					// Center the node on the drop point
+					const centeredX = relativeX - nodeWidth / 2;
+					const centeredY = relativeY - nodeHeight / 2;
+
+					// Account for container padding and ensure node stays within bounds
+					const padding = 24; // p-6
+					const topPadding = 64; // pt-16
+					const minX = padding;
+					const minY = topPadding;
+					const maxX = containerSize.width - nodeWidth - padding;
+					const maxY = containerSize.height - nodeHeight - padding;
+
+					const finalPosition = {
+						x: Math.max(minX, Math.min(centeredX, maxX)),
+						y: Math.max(minY, Math.min(centeredY, maxY)),
 					};
+
+					console.log("Final position:", finalPosition);
+
+					return finalPosition;
 				};
 
-				const newPosition = calculatePosition();
+				const newPosition = calculateRelativePosition();
 				const timestamp = Date.now();
 
 				// Handle tool drops (subnets)
@@ -145,7 +185,7 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 						data: {
 							...droppedData,
 							onDelete: data.onDelete,
-							defaultExpanded: false, // Tools dropped into containers are collapsed
+							defaultExpanded: false,
 						},
 						parentId: id,
 						extent: "parent" as const,
@@ -197,11 +237,10 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 						console.error("Error fetching tool details:", error);
 					}
 				}
-				// Handle block drops (start, condition, knowledge, etc.)
+				// Handle block drops
 				else if (droppedData.type) {
 					const nodeId = `${droppedData.type}-${timestamp}`;
 
-					// Create block node as child of this container
 					const blockNode: Node = {
 						id: nodeId,
 						type: droppedData.type,
@@ -234,11 +273,6 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 						)
 					);
 				}
-
-				// Trigger container resize after adding node
-				setTimeout(() => {
-					updateContainerSize();
-				}, 100);
 			} catch (error) {
 				console.error("Error parsing dropped data:", error);
 			}
@@ -248,29 +282,21 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 			data.onDelete,
 			data.childNodeCount,
 			setNodes,
-			isExpanded,
 			getNodes,
-			containerSize.width,
+			screenToFlowPosition,
+			isExpanded,
+			containerSize,
 		]
 	);
 
 	const updateContainerSize = useCallback(() => {
-		// Don't auto-resize if user has manually resized
-		if (isManuallyResized && isExpanded) {
-			return;
-		}
-
-		const nodes = getNodes();
-		const childNodes = nodes.filter((node) => node.parentId === id);
-
 		if (!isExpanded) {
-			const minSize = { width: 400, height: 250 };
+			const minSize = { width: 350, height: 150 };
 			if (
 				containerSize.width !== minSize.width ||
 				containerSize.height !== minSize.height
 			) {
 				setContainerSize(minSize);
-				setIsManuallyResized(false); // Reset manual resize flag when collapsing
 				setNodes((nodes) =>
 					nodes.map((node) =>
 						node.id === id
@@ -290,12 +316,12 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 		}
 
 		if (childNodes.length === 0) {
-			const minExpandedSize = { width: 900, height: 400 }; // Wider to accommodate 2 nodes per row with better spacing
+			const emptySize = { width: 900, height: 400 };
 			if (
-				containerSize.width !== minExpandedSize.width ||
-				containerSize.height !== minExpandedSize.height
+				containerSize.width !== emptySize.width ||
+				containerSize.height !== emptySize.height
 			) {
-				setContainerSize(minExpandedSize);
+				setContainerSize(emptySize);
 				setNodes((nodes) =>
 					nodes.map((node) =>
 						node.id === id
@@ -303,8 +329,8 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 									...node,
 									style: {
 										...node.style,
-										width: minExpandedSize.width,
-										height: minExpandedSize.height,
+										width: emptySize.width,
+										height: emptySize.height,
 									},
 							  }
 							: node
@@ -314,8 +340,11 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 			return;
 		}
 
-		let maxX = Math.max(900, 900); // Minimum width for loop container to fit 2 nodes per row with better spacing
-		let maxY = 400;
+		// Find the bounds of all child nodes
+		let minX = Infinity;
+		let minY = Infinity;
+		let maxX = -Infinity;
+		let maxY = -Infinity;
 
 		childNodes.forEach((node) => {
 			let nodeWidth = node.measured?.width || 400;
@@ -332,19 +361,39 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 				nodeHeight = node.measured?.height || 200;
 			}
 
+			const nodeLeft = node.position.x;
+			const nodeTop = node.position.y;
 			const nodeRight = node.position.x + nodeWidth;
 			const nodeBottom = node.position.y + nodeHeight;
 
-			maxX = Math.max(maxX, nodeRight + 80);
-			maxY = Math.max(maxY, nodeBottom + 80);
+			minX = Math.min(minX, nodeLeft);
+			minY = Math.min(minY, nodeTop);
+			maxX = Math.max(maxX, nodeRight);
+			maxY = Math.max(maxY, nodeBottom);
 		});
 
-		const newSize = { width: maxX, height: maxY };
+		// Add padding around the nodes
+		const padding = 80;
+		const topPadding = 120; // Extra space for header and controls
 
-		// Only update if size actually changed
+		// Calculate the actual needed size
+		const width = maxX - minX + 2 * padding;
+		const height = maxY - minY + topPadding + padding;
+
+		// Ensure minimum sizes
+		const minWidth = 900; // Minimum for 2 nodes side by side
+		const minHeight = 400;
+
+		const newSize = {
+			width: Math.max(width, minWidth),
+			height: Math.max(height, minHeight),
+		};
+
+		// Only update if size actually changed significantly (avoid micro-updates)
+		const threshold = 5; // pixels
 		if (
-			newSize.width !== containerSize.width ||
-			newSize.height !== containerSize.height
+			Math.abs(newSize.width - containerSize.width) > threshold ||
+			Math.abs(newSize.height - containerSize.height) > threshold
 		) {
 			setContainerSize(newSize);
 			setNodes((nodes) =>
@@ -362,29 +411,32 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 				)
 			);
 		}
-	}, [id, getNodes, setNodes, containerSize, isExpanded, isManuallyResized]);
+	}, [id, setNodes, containerSize, isExpanded, childNodes]);
 
-	useEffect(() => {
-		updateContainerSize();
-	}, [data.childNodeCount, isExpanded, updateContainerSize]);
+	// Debounced version of updateContainerSize for performance
+	const debouncedUpdateContainerSize = useMemo(
+		() => debounce(updateContainerSize, 100),
+		[updateContainerSize]
+	);
 
-	// Periodic check for node movements
+	// Update on child node changes
 	useEffect(() => {
-		const interval = setInterval(() => {
+		debouncedUpdateContainerSize();
+	}, [childNodes, debouncedUpdateContainerSize]);
+
+	// Update when expansion state changes
+	useEffect(() => {
+		if (!isTransitioning) {
 			updateContainerSize();
-		}, 500);
-
-		return () => clearInterval(interval);
-	}, [updateContainerSize]);
+		}
+	}, [isExpanded, updateContainerSize, isTransitioning]);
 
 	const toggleExpanded = () => {
 		const newExpandedState = !isExpanded;
 		setIsExpanded(newExpandedState);
+		setIsTransitioning(true);
 
 		// Hide/show child nodes when container is collapsed/expanded
-		const nodes = getNodes();
-		const childNodes = nodes.filter((node) => node.parentId === id);
-
 		if (childNodes.length > 0) {
 			setNodes((nodes) =>
 				nodes.map((node) => {
@@ -403,15 +455,15 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 		if (newExpandedState) {
 			setTimeout(() => {
 				updateContainerSize();
-			}, 100);
+				setIsTransitioning(false);
+			}, 300);
+		} else {
+			setIsTransitioning(false);
 		}
 	};
 
 	const handleDelete = useCallback(() => {
-		const nodes = getNodes();
-		const childNodeIds = nodes
-			.filter((node) => node.parentId === id)
-			.map((node) => node.id);
+		const childNodeIds = childNodes.map((node) => node.id);
 
 		setNodes((prev) =>
 			prev.filter(
@@ -420,7 +472,7 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 		);
 
 		data.onDelete?.(id);
-	}, [id, data.onDelete, getNodes, setNodes]);
+	}, [id, data.onDelete, childNodes, setNodes]);
 
 	const handleLoopTypeChange = useCallback(
 		(newType: string) => {
@@ -471,64 +523,38 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 			ref={containerRef}
 			className="group relative w-full h-full"
 			style={{
-				minWidth: isExpanded ? "900px" : "400px",
-				minHeight: isExpanded ? "400px" : "250px",
 				width: `${containerSize.width}px`,
 				height: `${containerSize.height}px`,
+				transition:
+					isTransitioning || !isExpanded
+						? "width 0.3s ease-out, height 0.3s ease-out"
+						: "width 0.2s ease-out, height 0.2s ease-out",
 			}}
 		>
-			<NodeResizer
-				color="rgb(249, 115, 22)"
-				handleClassName="!rounded-[2px] !size-3"
-				lineClassName="!border-dashed !border-[1.5px]"
-				isVisible={true}
-				minWidth={isExpanded ? 900 : 400}
-				minHeight={isExpanded ? 400 : 250}
-				onResize={(event, data) => {
-					const newSize = {
-						width: data.width,
-						height: data.height,
-					};
-					setContainerSize(newSize);
-					setIsManuallyResized(true);
-
-					setNodes((nodes) =>
-						nodes.map((node) =>
-							node.id === id
-								? {
-										...node,
-										style: {
-											...node.style,
-											width: newSize.width,
-											height: newSize.height,
-										},
-								  }
-								: node
-						)
-					);
-				}}
-			/>
+			{/* Removed NodeResizer - no manual resizing allowed */}
 
 			<div
-				className="w-full h-full rounded-xl relative hover:border-orange-500 transition-all duration-300 border-2 border-dashed border-orange-500/30"
+				className="w-full h-full rounded-xl relative transition-all duration-300 border-2 border-dashed border-orange-500/80"
 				onDragOver={handleDragOver}
 				onDrop={handleDrop}
 			>
-				<div className="absolute -top-8 left-5 z-10">
+				<div
+					className={`absolute -top-8 z-10 ${
+						isExpanded ? "left-5" : "left-1/2 -translate-x-1/2"
+					}`}
+				>
 					<div
-						className={`bg-theme border-2 border-dashed border-orange-500 rounded-lg p-4 flex items-center [border-spacing:1px] ${
-							isExpanded ? "w-auto" : "w-auto"
-						}`}
+						className={`bg-theme border-2 border-dashed border-orange-500 rounded-lg p-4 flex items-center [border-spacing:1px] w-auto`}
 					>
 						<div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center shadow-lg mr-3">
-							<RotateCcw className="w-6 h-6 text-white" />
+							<RotateCcw className="size-4 text-white" />
 						</div>
 						<div className="flex-1">
-							<h2 className="text-lg font-semibold text-foreground">
+							<h2 className="text-lg font-medium text-foreground whitespace-nowrap">
 								{loopName}
 							</h2>
 							<div className="flex items-center gap-2 text-sm text-muted-foreground">
-								<span>
+								<span className="whitespace-nowrap">
 									{loopType === "infinite"
 										? "∞ iterations"
 										: `${currentIteration}/${maxIterations} iterations`}
@@ -611,11 +637,11 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 						{/* Full droppable area matching the border */}
 						<div
 							className="w-full h-full rounded-xl p-6 pt-16"
+							data-droppable="true"
 							onDragOver={handleDragOver}
 							onDrop={handleDrop}
 						>
-							{(!data.childNodeCount ||
-								data.childNodeCount === 0) && (
+							{childNodes.length === 0 && (
 								<div className="w-full h-full rounded-lg bg-background/20 flex items-center justify-center hover:bg-background/30 transition-all duration-200">
 									<div className="text-center text-muted-foreground">
 										<RotateCcw className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -630,6 +656,15 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 									</div>
 								</div>
 							)}
+						</div>
+					</div>
+				)}
+
+				{!isExpanded && (
+					<div className="w-full h-full flex items-center justify-center">
+						<div className="text-center text-muted-foreground">
+							<RotateCcw className="w-8 h-8 mx-auto mb-1 opacity-50" />
+							<p className="text-xs">Loop collapsed</p>
 						</div>
 					</div>
 				)}

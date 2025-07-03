@@ -47,7 +47,7 @@ export const blocks: Block[] = [
 		title: "Condition",
 		description: "Add a condition",
 		icon: GitForkIcon,
-		color: "bg-orange-500",
+		color: "bg-indigo-500",
 	},
 	// {
 	// 	id: 4,

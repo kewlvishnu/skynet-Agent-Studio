@@ -31,12 +31,12 @@ export default function StartNode({ id, data }: StartNodeProps) {
 	const [trigger, setTrigger] = useState<"manual" | "webhook" | "schedule">(
 		"manual"
 	);
-	const [isExpanded, setIsExpanded] = useState(true);
+	const [isExpanded, setIsExpanded] = useState(false);
 
 	return (
 		<div className={`group relative ${isExpanded ? "w-96" : "w-full"}`}>
 			<div
-				className={`bg-theme border border-border rounded-lg py-4 flex flex-col gap-2 shadow-lg hover:shadow-brand-blue ${
+				className={`bg-theme border border-border rounded-lg py-3 flex flex-col gap-2 shadow-lg hover:shadow-brand-blue ${
 					isExpanded ? "w-96" : "w-full"
 				}`}
 			>
@@ -49,7 +49,7 @@ export default function StartNode({ id, data }: StartNodeProps) {
 						<div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-brand-blue transition-all duration-300 ease-in-out">
 							<Play size={20} className=" text-white" />
 						</div>
-						<h1 className="text-lg font-semibold text-foreground">
+						<h1 className="text-lg font-medium text-foreground">
 							{data.label || "Condition 1"}
 						</h1>
 					</div>

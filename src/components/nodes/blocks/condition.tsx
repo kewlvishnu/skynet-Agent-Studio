@@ -75,7 +75,7 @@ export default function ConditionNode({ id, data }: ConditionNodeProps) {
 						<div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-brand-indigo">
 							<GitBranch className="w-5 h-5 text-white" />
 						</div>
-						<h1 className="text-lg font-semibold text-foreground">
+						<h1 className="text-lg font-medium text-foreground">
 							{data.label || "Condition 1"}
 						</h1>
 					</div>
