@@ -52,7 +52,7 @@ export function AppCryptoContextProvider({ children }: Props) {
 			const network = await ethersProvider.getNetwork();
 			console.log("Current network:", network.chainId);
 
-			if (network.chainId !== 619n) {
+			if (network.chainId !== BigInt(619)) {
 				console.warn(
 					`Wrong network detected: ${network.chainId}, expected: 619`
 				);
