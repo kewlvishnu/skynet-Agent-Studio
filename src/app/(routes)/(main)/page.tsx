@@ -29,6 +29,7 @@ import RightWorkspaceSidebar from "@/components/sidebar/right-workspace-sidebar"
 import WorkspaceSidebar from "@/components/sidebar/workspace-sidebar";
 import { getSubnetById } from "@/controllers/subnets/subnets.queries";
 import { getAgentById } from "@/controllers/agents/agents.queries";
+import toast from "react-hot-toast";
 
 const edgeTypes = {
 	custom: CustomEdge,
@@ -315,7 +316,16 @@ function FlowCanvas({
 					}
 					return;
 				} else if (droppedData.name && droppedData.id) {
-					// Create agent container when an agent is dropped
+					const existingAgentContainer = nodes.find(
+						(node) => node.type === "agentContainer"
+					);
+					if (existingAgentContainer) {
+						toast.error(
+							"Remove existing agent first - only one allowed per flow."
+						);
+						return;
+					}
+
 					try {
 						const detailedResponse = await getAgentById(
 							droppedData.id
@@ -573,12 +583,12 @@ function FlowCanvas({
 					}
 					return; // Early return to avoid creating newNode below
 				}
-				// Handle loop container block specifically
-				else if (droppedData.type === "loopContainer") {
-					const containerId = `loop-container-${Date.now()}`;
-					const loopContainerNode: Node = {
+				// Handle loop block specifically
+				else if (droppedData.type === "loop") {
+					const containerId = `loop-${Date.now()}`;
+					const loopNode: Node = {
 						id: containerId,
-						type: "loopContainer",
+						type: "loop",
 						position,
 						data: {
 							loopName: droppedData.title,
@@ -598,7 +608,7 @@ function FlowCanvas({
 						},
 					};
 
-					setNodes((prev) => [...prev, loopContainerNode]);
+					setNodes((prev) => [...prev, loopNode]);
 				}
 				// Otherwise it's a regular block
 				else {
@@ -622,7 +632,7 @@ function FlowCanvas({
 				console.error("Error parsing dropped data:", error);
 			}
 		},
-		[screenToFlowPosition, deleteNode]
+		[screenToFlowPosition, deleteNode, nodes]
 	);
 
 	const exportConnections = useCallback(() => {

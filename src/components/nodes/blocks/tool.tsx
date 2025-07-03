@@ -156,11 +156,15 @@ export default function ToolNode({ id, data }: ToolNodeProps) {
 	}
 
 	return (
-		<div className="group relative w-96 h-full">
-			<div className="w-96 bg-theme border border-border rounded-lg py-4 flex flex-col gap-2 shadow-lg hover:shadow-brand-blue transition-all duration-300 ease-in-out">
+		<div className={`group relative ${isExpanded ? "w-96" : "w-full"}`}>
+			<div
+				className={`bg-theme border border-border rounded-lg py-4 flex flex-col gap-2 shadow-lg hover:shadow-brand-blue transition-all duration-300 ease-in-out ${
+					isExpanded ? "w-96" : "w-full"
+				}`}
+			>
 				<div
 					className={`flex items-center justify-between px-4 border-border ${
-						isExpanded ? "border-b pb-2" : "pt-1 border-b-0"
+						isExpanded ? "border-b pb-2" : "pt-1 border-b-0 gap-x-6"
 					}`}
 				>
 					<div className="flex items-center gap-3">
@@ -399,7 +403,7 @@ export default function ToolNode({ id, data }: ToolNodeProps) {
 					type="target"
 					position={Position.Left}
 					id={`${id}-target`}
-					className={`!bg-royal-blue !border-royal-blue opacity-80 ${
+					className={`!bg-gray-300 !border-gray-300 opacity-80 ${
 						!isExpanded ? "!h-8" : ""
 					}`}
 				/>

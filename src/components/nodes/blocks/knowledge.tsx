@@ -27,11 +27,15 @@ export default function KnowledgeNode({ id, data }: KnowledgeNodeProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 
 	return (
-		<div className="group relative w-86">
-			<div className="w-80 bg-theme border border-border rounded-lg py-4 flex flex-col gap-2 shadow-lg hover:shadow-brand-cyan transition-all duration-200">
+		<div className={`group relative ${isExpanded ? "w-96" : "w-full"}`}>
+			<div
+				className={`bg-theme border border-border rounded-lg py-4 flex flex-col gap-2 shadow-lg hover:shadow-brand-blue ${
+					isExpanded ? "w-96" : "w-full"
+				}`}
+			>
 				<div
 					className={`flex items-center justify-between px-4 border-border ${
-						isExpanded ? "border-b pb-2" : "pt-1 border-b-0"
+						isExpanded ? "border-b pb-2" : "pt-1 border-b-0 gap-x-6"
 					}`}
 				>
 					<div className="flex items-center gap-3">
