@@ -33,6 +33,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Position } from "@xyflow/react";
 import { CustomHandle } from "@/components/handle/custom-handle";
+import { useExecutionStatus } from "@/providers/ExecutionStatusProvider";
 
 interface ToolNodeProps {
 	id: string;
@@ -64,6 +65,8 @@ interface ToolNodeProps {
 		system_prompt?: string | null;
 		defaultExpanded?: boolean;
 		onToggleExpand?: () => void;
+		itemID?: number;
+		onDataChange?: (nodeId: string, newData: any) => void;
 	};
 }
 
@@ -74,8 +77,28 @@ export default function ToolNode({ id, data }: ToolNodeProps) {
 	);
 	const [isExpanded, setIsExpanded] = useState(data.defaultExpanded ?? true);
 	const [changeDirection, setChangeDirection] = useState(false);
+	const [prompt, setPrompt] = useState(
+		data.prompt || data.prompt_example || ""
+	);
+	const [systemPrompt, setSystemPrompt] = useState(data.system_prompt || "");
+	const { executionStatus } = useExecutionStatus();
 
 	const toolTitle = data.subnet_name || data.label || "Tool";
+
+	// Check if this subnet is currently processing
+	const isProcessing =
+		data.itemID !== undefined &&
+		executionStatus.isRunning &&
+		executionStatus.subnetStatuses?.[String(data.itemID)] === "processing";
+
+	// Check if this subnet has completed
+	const isCompleted =
+		data.itemID !== undefined &&
+		executionStatus.subnetStatuses?.[String(data.itemID)] === "completed";
+
+	const anyProcessing = Object.values(
+		executionStatus.subnetStatuses || {}
+	).includes("processing");
 
 	const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0];
@@ -106,6 +129,26 @@ export default function ToolNode({ id, data }: ToolNodeProps) {
 	const handleDelete = () => {
 		data.onDelete?.(id);
 	};
+
+	const handlePromptChange = (value: string) => {
+		setPrompt(value);
+		// Update the node data to be passed to the workflow
+		data.onDataChange?.(id, {
+			...data,
+			prompt: value,
+		});
+	};
+
+	const handleSystemPromptChange = (value: string) => {
+		setSystemPrompt(value);
+		// Update the node data to be passed to the workflow
+		data.onDataChange?.(id, {
+			...data,
+			system_prompt: value,
+		});
+	};
+
+	const borderClass = "border border-border";
 
 	if (data.isLoading) {
 		return (
@@ -158,7 +201,7 @@ export default function ToolNode({ id, data }: ToolNodeProps) {
 	return (
 		<div className={`group relative ${isExpanded ? "w-96" : "w-full"}`}>
 			<div
-				className={`bg-theme border border-border rounded-lg py-4 flex flex-col gap-2 shadow-lg hover:shadow-brand-blue transition-all duration-300 ease-in-out ${
+				className={`bg-theme ${borderClass} rounded-lg py-4 flex flex-col gap-2 shadow-lg hover:shadow-brand-blue transition-all duration-300 ease-in-out ${
 					isExpanded ? "w-96" : "w-full"
 				}`}
 			>
@@ -230,27 +273,33 @@ export default function ToolNode({ id, data }: ToolNodeProps) {
 
 				{isExpanded && (
 					<div className="px-4 space-y-3 animate-in fade-in-0 slide-in-from-top-2 duration-300 ease-in-out">
-						{data.prompt_example && (
+						{(data.prompt_example || data.prompt) && (
 							<div className="space-y-1 flex-1 flex flex-col">
 								<Label className="text-sm font-medium text-foreground">
 									Prompt
 								</Label>
 								<Textarea
-									value={data.prompt || ""}
-									readOnly
+									value={prompt}
+									onChange={(e) =>
+										handlePromptChange(e.target.value)
+									}
+									placeholder="Enter your prompt here..."
 									className="resize-none flex-1 min-h-[100px] bg-background/50 border border-border text-foreground focus-visible:ring-0 focus-visible:ring-none transition-all duration-300 ease-in-out focus:border-brand-blue"
 								/>
 							</div>
 						)}
 
-						{data.system_prompt && (
+						{(data.system_prompt || systemPrompt) && (
 							<div className="space-y-1 flex-1 flex flex-col">
 								<Label className="text-sm font-medium text-foreground">
 									Rules
 								</Label>
 								<Textarea
-									value={data.system_prompt}
-									readOnly
+									value={systemPrompt}
+									onChange={(e) =>
+										handleSystemPromptChange(e.target.value)
+									}
+									placeholder="Enter system rules here..."
 									className="resize-none flex-1 min-h-[100px] bg-background/50 border border-border text-foreground focus-visible:ring-0 focus-visible:ring-none transition-all duration-300 ease-in-out focus:border-brand-blue"
 								/>
 							</div>
@@ -403,17 +452,25 @@ export default function ToolNode({ id, data }: ToolNodeProps) {
 					type="target"
 					position={Position.Left}
 					id={`${id}-target`}
-					className={`!bg-gray-300 !border-gray-300 opacity-80 ${
-						!isExpanded ? "!h-8" : ""
-					}`}
+					className={`${
+						isProcessing
+							? "!bg-royal-blue !border-royal-blue animate-pulse"
+							: isCompleted
+							? "!bg-royal-blue !border-royal-blue"
+							: "!bg-gray-300 !border-gray-300"
+					} opacity-80 ${!isExpanded ? "!h-8" : ""}`}
 				/>
 				<CustomHandle
 					type="source"
 					position={Position.Right}
 					id={`${id}-source`}
-					className={`!bg-royal-blue !border-royal-blue opacity-80 ${
-						!isExpanded ? "!h-8" : ""
-					}`}
+					className={`${
+						isProcessing
+							? "!bg-royal-blue !border-royal-blue animate-pulse"
+							: isCompleted
+							? "!bg-royal-blue !border-royal-blue"
+							: "!bg-royal-blue !border-royal-blue"
+					} opacity-80 ${!isExpanded ? "!h-8" : ""}`}
 				/>
 			</div>
 		</div>

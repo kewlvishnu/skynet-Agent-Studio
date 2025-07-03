@@ -12,6 +12,7 @@ import { Position, useReactFlow, Node, useStore } from "@xyflow/react";
 import { Bot, Trash, Maximize2, Minimize2 } from "lucide-react";
 import { CustomHandle } from "@/components/handle/custom-handle";
 import { getSubnetById } from "@/controllers/subnets/subnets.queries";
+import { useExecutionStatus } from "@/providers/ExecutionStatusProvider";
 
 interface AgentContainerProps {
 	id: string;
@@ -51,12 +52,111 @@ export default function AgentContainer({
 	});
 	const [isTransitioning, setIsTransitioning] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
-	const { getNodes, setNodes } = useReactFlow();
+	const { getNodes, setNodes, setEdges } = useReactFlow();
+	const { executionStatus } = useExecutionStatus();
 
 	// Use React Flow's store to subscribe to node changes more efficiently
 	const childNodes = useStore((state) =>
 		state.nodes.filter((node) => node.parentId === id)
 	);
+
+	// Update edge animations when execution status changes
+	useEffect(() => {
+		// Update edges based on current execution status
+		setEdges((edges) =>
+			edges.map((edge) => {
+				// Only update edges that are connected to child nodes of this container
+				const isChildEdge = childNodes.some(
+					(node) => node.id === edge.source || node.id === edge.target
+				);
+
+				if (!isChildEdge) return edge;
+
+				// Determine if this edge should be animated based on subnet status
+				let shouldAnimate = false;
+				let isCompleted = false;
+
+				// Check both source and target nodes for their execution status
+				const sourceNode = childNodes.find(
+					(node) => node.id === edge.source
+				);
+				const targetNode = childNodes.find(
+					(node) => node.id === edge.target
+				);
+
+				// Check if the source node has completed (which means this edge should be blue)
+				if (
+					sourceNode &&
+					sourceNode.data &&
+					typeof sourceNode.data === "object" &&
+					"itemID" in sourceNode.data
+				) {
+					const sourceItemID = String(sourceNode.data.itemID);
+					const sourceStatus =
+						executionStatus.subnetStatuses?.[sourceItemID];
+
+					if (sourceStatus === "completed") {
+						isCompleted = true;
+					}
+				}
+
+				// Check if the target node is currently processing
+				if (
+					targetNode &&
+					targetNode.data &&
+					typeof targetNode.data === "object" &&
+					"itemID" in targetNode.data
+				) {
+					const targetItemID = String(targetNode.data.itemID);
+					const targetStatus =
+						executionStatus.subnetStatuses?.[targetItemID];
+
+					if (targetStatus === "processing") {
+						shouldAnimate = true;
+						isCompleted = false; // Override completed if currently processing
+					}
+				}
+
+				// Special case for start node - check if it's connected and execution has started
+				if (sourceNode && sourceNode.type === "start") {
+					// If any subnet has been processed, the start node's edges should be blue
+					const hasAnyCompleted = Object.values(
+						executionStatus.subnetStatuses || {}
+					).some(
+						(status) =>
+							status === "completed" || status === "processing"
+					);
+					if (hasAnyCompleted) {
+						isCompleted = true;
+					}
+				}
+
+				// Only update if state has changed
+				if (
+					edge.data?.processing !== shouldAnimate ||
+					edge.data?.completed !== isCompleted
+				) {
+					return {
+						...edge,
+						data: {
+							...edge.data,
+							processing: shouldAnimate,
+							completed: isCompleted,
+							executionStatus: executionStatus,
+						},
+					};
+				}
+
+				return edge;
+			})
+		);
+	}, [
+		executionStatus.isRunning,
+		executionStatus.subnetStatuses,
+		childNodes.length,
+		id,
+		setEdges,
+	]);
 
 	const toggleExpanded = () => {
 		const newExpandedState = !isExpanded;

@@ -32,6 +32,7 @@ import {
 import { io, Socket } from "socket.io-client";
 import toast from "react-hot-toast";
 import { Button } from "../ui/button";
+import { useExecutionStatus } from "@/providers/ExecutionStatusProvider";
 
 // Interface for subnet response data
 interface SubnetResponseData {
@@ -71,8 +72,25 @@ export default function RightWorkspaceSidebar({
 	onWidthChange,
 	selectedAgent,
 }: RightWorkspaceSidebarProps) {
+	const { open, state } = useSidebar();
+	const [prompt, setPrompt] = useState("");
 	const [isSubmitted, setIsSubmitted] = useState(false);
-	const { state } = useSidebar();
+	const [testStatus, setTestStatus] = useState<AgentTestStatus>({
+		isRunning: false,
+		status: "idle",
+		progress: 0,
+		logs: [],
+	});
+	const [subnetResponses, setSubnetResponses] = useState<
+		SubnetResponseData[]
+	>([]);
+	const socketRef = useRef<Socket | null>(null);
+	const {
+		executionStatus,
+		updateExecutionStatus,
+		resetExecutionStatus,
+		stopExecution,
+	} = useExecutionStatus();
 	const sidebarRef = useRef<HTMLDivElement>(null);
 	const [sidebarWidth, setSidebarWidth] = useState(352);
 	const [isResizing, setIsResizing] = useState(false);
@@ -83,23 +101,12 @@ export default function RightWorkspaceSidebar({
 	const [nfts, setNfts] = useState<number[]>([]);
 	const [selectedNft, setSelectedNft] = useState<string | null>(null);
 	const [isMinting, setIsMinting] = useState(false);
-	const [userPrompt, setUserPrompt] = useState<string>("");
-	const [testStatus, setTestStatus] = useState<AgentTestStatus>({
-		isRunning: false,
-		status: "idle",
-		progress: 0,
-	});
-	const [subnetResponses, setSubnetResponses] = useState<
-		SubnetResponseData[]
-	>([]);
 	const [showInsufficientFundsModal, setShowInsufficientFundsModal] =
 		useState(false);
 
 	const { skyBrowser } = useContext(AppCryptoContext);
 	const web3Context = useContext(Web3Context);
 	const { provider, web3Auth } = useWeb3Auth();
-
-	const socketRef = useRef<Socket | null>(null);
 
 	const minWidth = 280;
 	const maxWidth = 600;
@@ -116,9 +123,9 @@ export default function RightWorkspaceSidebar({
 			);
 
 			setSidebarWidth(clampedWidth);
-			onWidthChange?.(state === "collapsed" ? 0 : clampedWidth);
+			onWidthChange?.(open === false ? 0 : clampedWidth);
 		},
-		[isResizing, onWidthChange, state, minWidth, maxWidth]
+		[isResizing, onWidthChange, open, minWidth, maxWidth]
 	);
 
 	const handleMouseUp = useCallback(() => {
@@ -251,8 +258,11 @@ export default function RightWorkspaceSidebar({
 			return;
 		}
 
-		setUserPrompt(prompt);
+		setPrompt(prompt);
 		setIsSubmitted(true);
+
+		// Initialize execution status
+		resetExecutionStatus();
 
 		let nftId: string | null = null;
 		if (selectedNft) {
@@ -472,7 +482,11 @@ export default function RightWorkspaceSidebar({
 							subnet.expectedOutput ||
 							subnet.output ||
 							"processed result",
-						prompt: subnet.prompt || subnet.promptExample || "",
+						prompt:
+							subnet.prompt ||
+							subnet.promptExample ||
+							subnet.prompt_example ||
+							"",
 						subnetID:
 							subnet.subnetID ||
 							subnet.unique_id ||
@@ -500,7 +514,8 @@ export default function RightWorkspaceSidebar({
 						fileDownload: Boolean(
 							subnet.fileDownload || subnet.file_download
 						),
-						systemPrompt: subnet.systemPrompt || "",
+						systemPrompt:
+							subnet.systemPrompt || subnet.system_prompt || "",
 						expectedInput: subnet.expectedInput || "",
 						promptExample: subnet.promptExample || "",
 						expectedOutput: subnet.expectedOutput || "",
@@ -637,6 +652,15 @@ export default function RightWorkspaceSidebar({
 
 				if (statusValue === "starting") {
 					progress = 10;
+					// Update execution status context
+					updateExecutionStatus({
+						isRunning: true,
+						currentSubnet: subnetName,
+						subnetStatuses: {
+							...executionStatus.subnetStatuses,
+							[String(itemID)]: "processing",
+						},
+					});
 					setTestStatus((prev) => ({
 						...prev,
 						status: "initializing",
@@ -656,6 +680,16 @@ export default function RightWorkspaceSidebar({
 						);
 					});
 					progress = Math.floor((currentIndex / totalSubnets) * 100);
+
+					// Update execution status context
+					updateExecutionStatus({
+						isRunning: true,
+						currentSubnet: subnetName,
+						subnetStatuses: {
+							...executionStatus.subnetStatuses,
+							[String(itemID)]: "processing",
+						},
+					});
 
 					setTestStatus((prev) => {
 						const logs = (prev.logs || []).filter(
@@ -687,6 +721,20 @@ export default function RightWorkspaceSidebar({
 					progress = Math.floor(
 						((currentIndex + 1) / totalSubnets) * 100
 					);
+
+					// Update execution status context - mark subnet as completed
+					updateExecutionStatus({
+						isRunning: true,
+						currentSubnet: undefined,
+						completedSubnets: [
+							...(executionStatus.completedSubnets || []),
+							String(itemID),
+						],
+						subnetStatuses: {
+							...executionStatus.subnetStatuses,
+							[String(itemID)]: "completed",
+						},
+					});
 
 					let responseMessage = "";
 					let responseData: Record<string, unknown> | null = null;
@@ -800,6 +848,9 @@ export default function RightWorkspaceSidebar({
 				} else if (statusValue === "completed") {
 					progress = 100;
 
+					// Stop execution but keep completed states
+					stopExecution();
+
 					setTestStatus((prev) => ({
 						...prev,
 						status: "test completed",
@@ -828,6 +879,9 @@ export default function RightWorkspaceSidebar({
 
 			socketRef.current.on("error", (error) => {
 				console.error("Socket error:", error);
+
+				// Stop execution on error
+				stopExecution();
 
 				let errorMessage = "An error occurred";
 				let errorDetails = "";

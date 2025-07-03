@@ -50,6 +50,7 @@ interface LoopNodeProps {
 		isRunning?: boolean;
 		childNodeCount?: number;
 		onDelete?: (nodeId: string) => void;
+		onDataChange?: (nodeId: string, newData: any) => void;
 	};
 }
 
@@ -185,6 +186,7 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 						data: {
 							...droppedData,
 							onDelete: data.onDelete,
+							onDataChange: data.onDataChange,
 							defaultExpanded: false,
 						},
 						parentId: id,
@@ -226,6 +228,8 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 													...node.data,
 													...toolDetail,
 													onDelete: data.onDelete,
+													onDataChange:
+														data.onDataChange,
 													defaultExpanded: false,
 												},
 										  }

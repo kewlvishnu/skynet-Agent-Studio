@@ -36,14 +36,36 @@ const CustomEdge: FC<EdgeProps> = ({
 	});
 
 	const processing = data?.processing;
+	const completed = data?.completed;
+	const executionStatus = data?.executionStatus;
 
-	const edgeStyle = {
-		stroke: processing ? "#3b82f6" : "#64748b",
+	// Determine edge styling based on execution status
+	let edgeStyle = {
+		stroke: "#64748b", // Default gray
 		strokeWidth: 2,
 		strokeDasharray: "8 8",
-		animation: processing ? "dashFlow 2s linear infinite" : "none",
+		animation: "none",
 		...style,
 	};
+
+	if (processing) {
+		// Animated blue when subnet is processing
+		edgeStyle = {
+			...edgeStyle,
+			stroke: "hsl(var(--royal-blue))", // Royal blue
+			animation: "dashFlow 2s linear infinite",
+			opacity: 0.8,
+		};
+	} else if (completed) {
+		// Keep blue but stop animation when subnet is completed
+		edgeStyle = {
+			...edgeStyle,
+			stroke: "hsl(var(--royal-blue))", 
+			strokeDasharray: "8 8", 
+			animation: "none",
+			opacity: 0.8,
+		};
+	}
 
 	const handleDelete = (event: React.MouseEvent) => {
 		event.stopPropagation();

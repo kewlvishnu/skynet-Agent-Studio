@@ -70,126 +70,139 @@ function FlowCanvas({
 	const [nodes, setNodes] = useState<Node[]>([]);
 
 	const [edges, setEdges] = useState<Edge[]>([]);
-	const [isProcessing, setIsProcessing] = useState(true);
 
-	const updateEdgesProcessing = useCallback((processing: boolean) => {
-		setEdges((currentEdges) =>
-			currentEdges.map((edge) => ({
-				...edge,
-				data: {
-					...edge.data,
-					processing: processing,
-				},
-			}))
-		);
-	}, []);
+	// Function to update selected agent's subnet data when tool nodes are modified
+	const updateSelectedAgentSubnet = useCallback(
+		(nodeId: string, newData: any) => {
+			if (!selectedAgent) return;
 
-	const deleteNode = useCallback(
-		(nodeId: string) => {
-			setNodes((currentNodes) => {
-				const nodeToDelete = currentNodes.find(
-					(node) => node.id === nodeId
-				);
+			setSelectedAgent((prevAgent: any) => {
+				if (!prevAgent) return prevAgent;
 
-				// If it's a container node, also delete all child nodes
-				if (nodeToDelete?.type === "agentContainer") {
-					const childNodes = currentNodes.filter(
-						(node) => node.parentId === nodeId
-					);
-					const childNodeIds = childNodes.map((child) => child.id);
-
-					// Remove edges connected to child nodes
-					setEdges((currentEdges) => {
-						return currentEdges.filter(
-							(edge) =>
-								!childNodeIds.includes(edge.source) &&
-								!childNodeIds.includes(edge.target) &&
-								edge.source !== nodeId &&
-								edge.target !== nodeId
-						);
-					});
-
-					// Remove container and all child nodes
-					return currentNodes.filter(
-						(node) => node.id !== nodeId && node.parentId !== nodeId
-					);
-				}
-
-				// Check if this is a child node (has a parent)
-				const parentId = nodeToDelete?.parentId;
-
-				// Handle regular node deletion
-				setEdges((currentEdges) => {
-					// Find incoming and outgoing edges
-					const incomingEdges = currentEdges.filter(
-						(edge) => edge.target === nodeId
-					);
-					const outgoingEdges = currentEdges.filter(
-						(edge) => edge.source === nodeId
-					);
-
-					// Create new connecting edges (reconnect the flow)
-					const newEdges = [];
-					for (const incomingEdge of incomingEdges) {
-						for (const outgoingEdge of outgoingEdges) {
-							// Avoid self-loops
-							if (incomingEdge.source !== outgoingEdge.target) {
-								newEdges.push({
-									id: `reconnect-${incomingEdge.source}-${
-										outgoingEdge.target
-									}-${Date.now()}-${Math.random()
-										.toString(36)
-										.substr(2, 9)}`,
-									source: incomingEdge.source,
-									target: outgoingEdge.target,
-									type: "custom",
-									data: {
-										processing: isProcessing,
-									},
-								});
-							}
-						}
+				// Find the subnet in the agent's subnet list that corresponds to this node
+				const updatedSubnets = prevAgent.subnets.map((subnet: any) => {
+					// Match by unique_id, itemID, or subnet_name
+					if (
+						subnet.unique_id === newData.unique_id ||
+						subnet.itemID === newData.itemID ||
+						subnet.subnet_name === newData.subnet_name
+					) {
+						return {
+							...subnet,
+							...newData,
+						};
 					}
-
-					// Remove edges connected to the deleted node
-					const filteredEdges = currentEdges.filter(
-						(edge) =>
-							edge.source !== nodeId && edge.target !== nodeId
-					);
-
-					// Return filtered edges plus new reconnecting edges
-					return [...filteredEdges, ...newEdges];
+					return subnet;
 				});
 
-				// Remove the node and update parent container if needed
-				const updatedNodes = currentNodes.filter(
-					(node) => node.id !== nodeId
-				);
-
-				// If this was a child node, update the parent container's child count
-				if (parentId) {
-					const remainingChildNodes = updatedNodes.filter(
-						(node) => node.parentId === parentId
-					);
-					return updatedNodes.map((node) =>
-						node.id === parentId
-							? {
-									...node,
-									data: {
-										...node.data,
-										childNodeCount:
-											remainingChildNodes.length,
-									},
-							  }
-							: node
-					);
-				}
-
-				return updatedNodes;
+				return {
+					...prevAgent,
+					subnets: updatedSubnets,
+				};
 			});
 		},
-		[isProcessing]
+		[selectedAgent]
 	);
+
+	const deleteNode = useCallback((nodeId: string) => {
+		setNodes((currentNodes) => {
+			const nodeToDelete = currentNodes.find(
+				(node) => node.id === nodeId
+			);
+
+			// If it's a container node, also delete all child nodes
+			if (nodeToDelete?.type === "agentContainer") {
+				const childNodes = currentNodes.filter(
+					(node) => node.parentId === nodeId
+				);
+				const childNodeIds = childNodes.map((child) => child.id);
+
+				// Remove edges connected to child nodes
+				setEdges((currentEdges) => {
+					return currentEdges.filter(
+						(edge) =>
+							!childNodeIds.includes(edge.source) &&
+							!childNodeIds.includes(edge.target) &&
+							edge.source !== nodeId &&
+							edge.target !== nodeId
+					);
+				});
+
+				// Remove container and all child nodes
+				return currentNodes.filter(
+					(node) => node.id !== nodeId && node.parentId !== nodeId
+				);
+			}
+
+			// Check if this is a child node (has a parent)
+			const parentId = nodeToDelete?.parentId;
+
+			// Handle regular node deletion
+			setEdges((currentEdges) => {
+				// Find incoming and outgoing edges
+				const incomingEdges = currentEdges.filter(
+					(edge) => edge.target === nodeId
+				);
+				const outgoingEdges = currentEdges.filter(
+					(edge) => edge.source === nodeId
+				);
+
+				// Create new connecting edges (reconnect the flow)
+				const newEdges = [];
+				for (const incomingEdge of incomingEdges) {
+					for (const outgoingEdge of outgoingEdges) {
+						// Avoid self-loops
+						if (incomingEdge.source !== outgoingEdge.target) {
+							newEdges.push({
+								id: `reconnect-${incomingEdge.source}-${
+									outgoingEdge.target
+								}-${Date.now()}-${Math.random()
+									.toString(36)
+									.substr(2, 9)}`,
+								source: incomingEdge.source,
+								target: outgoingEdge.target,
+								type: "custom",
+								data: {},
+							});
+						}
+					}
+				}
+
+				// Remove edges connected to the deleted node
+				const filteredEdges = currentEdges.filter(
+					(edge) => edge.source !== nodeId && edge.target !== nodeId
+				);
+
+				// Return filtered edges plus new reconnecting edges
+				return [...filteredEdges, ...newEdges];
+			});
+
+			// Remove the node and update parent container if needed
+			const updatedNodes = currentNodes.filter(
+				(node) => node.id !== nodeId
+			);
+
+			// If this was a child node, update the parent container's child count
+			if (parentId) {
+				const remainingChildNodes = updatedNodes.filter(
+					(node) => node.parentId === parentId
+				);
+				return updatedNodes.map((node) =>
+					node.id === parentId
+						? {
+								...node,
+								data: {
+									...node.data,
+									childNodeCount: remainingChildNodes.length,
+								},
+						  }
+						: node
+				);
+			}
+
+			return updatedNodes;
+		});
+	}, []);
 
 	const onNodesChange: OnNodesChange = useCallback(
 		(changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -201,19 +214,14 @@ function FlowCanvas({
 		[]
 	);
 
-	const onConnect: OnConnect = useCallback(
-		(connection) => {
-			const newEdge = {
-				...connection,
-				type: "custom",
-				data: {
-					processing: isProcessing,
-				},
-			};
-			setEdges((eds) => addEdge(newEdge, eds));
-		},
-		[isProcessing]
-	);
+	const onConnect: OnConnect = useCallback((connection) => {
+		const newEdge = {
+			...connection,
+			type: "custom",
+			data: {},
+		};
+		setEdges((eds) => addEdge(newEdge, eds));
+	}, []);
 
 	const onDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
 		e.preventDefault();
@@ -271,6 +279,8 @@ function FlowCanvas({
 													...node.data,
 													...toolDetail,
 													onDelete: deleteNode,
+													onDataChange:
+														updateSelectedAgentSubnet,
 												},
 										  }
 										: node
@@ -442,6 +452,8 @@ function FlowCanvas({
 												subnet_url: subnet.subnetURL,
 												subnet_id: subnet.subnetID,
 												onDelete: deleteNode,
+												onDataChange:
+													updateSelectedAgentSubnet,
 												defaultExpanded: false,
 												...subnet,
 											},
@@ -478,10 +490,7 @@ function FlowCanvas({
 															source: sourceNodeId,
 															target: targetNodeId,
 															type: "custom",
-															data: {
-																processing:
-																	isProcessing,
-															},
+															data: {},
 														});
 													}
 												}
@@ -508,9 +517,7 @@ function FlowCanvas({
 											source: startNodeId,
 											target: targetNodeId,
 											type: "custom",
-											data: {
-												processing: isProcessing,
-											},
+											data: {},
 										});
 									}
 								});
@@ -600,6 +607,7 @@ function FlowCanvas({
 							isRunning: false,
 							childNodeCount: 0,
 							onDelete: deleteNode,
+							onDataChange: updateSelectedAgentSubnet,
 						},
 						// Set initial container size
 						style: {
@@ -737,21 +745,6 @@ function FlowCanvas({
 							: "20px",
 				}}
 			>
-				<Button
-					onClick={() => {
-						const newProcessingState = !isProcessing;
-						setIsProcessing(newProcessingState);
-						updateEdgesProcessing(newProcessingState);
-					}}
-					className={`${
-						isProcessing
-							? "bg-blue-600 hover:bg-blue-700"
-							: "bg-gray-600 hover:bg-gray-700"
-					} text-white flex items-center gap-2`}
-					size="sm"
-				>
-					{isProcessing ? "Processing: ON" : "Processing: OFF"}
-				</Button>
 				<Button
 					onClick={exportConnections}
 					className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
