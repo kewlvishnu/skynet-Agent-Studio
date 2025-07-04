@@ -1,4 +1,7 @@
 import SkyMainBrowser from "@decloudlabs/skynet/lib/services/SkyMainBrowser";
+import SkyBrowserSigner from "@decloudlabs/skynet/lib/services/SkyBrowserSigner";
+import SkyEtherContractService from "@decloudlabs/skynet/lib/services/SkyEtherContractService";
+import { SkyEnvConfigBrowser } from "@decloudlabs/skynet/lib/types/types";
 import { ethers } from "ethers";
 import axios, { AxiosError } from "axios";
 
@@ -452,4 +455,69 @@ export const logAPICall = (
 		console.log("📥 Response:", JSON.stringify(response, null, 2));
 	if (error) console.error("❌ Error:", error);
 	console.groupEnd();
+};
+
+// Skynet initialization functions
+export const validateNetwork = async (
+	provider: ethers.BrowserProvider
+): Promise<boolean> => {
+	const network = await provider.getNetwork();
+	return network.chainId === BigInt(619); // Skynet chain ID
+};
+
+export const createContractService = (
+	provider: any,
+	signer: ethers.Signer,
+	address: string
+): SkyEtherContractService => {
+	return new SkyEtherContractService(
+		provider as never,
+		signer,
+		address,
+		619 // Skynet chain ID
+	);
+};
+
+export const createSkyBrowser = (
+	contractService: SkyEtherContractService
+): SkyMainBrowser => {
+	const envConfig: SkyEnvConfigBrowser = {
+		STORAGE_API: "https://appstorage-c0n33.stackos.io/api/lighthouse",
+		CACHE: {
+			TYPE: "CACHE",
+		},
+	};
+
+	return new SkyMainBrowser(
+		contractService,
+		contractService.selectedAccount,
+		new SkyBrowserSigner(
+			contractService.selectedAccount,
+			contractService.signer
+		),
+		envConfig
+	);
+};
+
+export const initializeSkynet = async (
+	provider: any,
+	signer: ethers.Signer
+): Promise<SkyMainBrowser> => {
+	const ethersProvider = new ethers.BrowserProvider(provider);
+	const address = await signer.getAddress();
+
+	// Validate network
+	const isValidNetwork = await validateNetwork(ethersProvider);
+	if (!isValidNetwork) {
+		throw new Error(`Please switch to Skynet network (Chain ID: 619)`);
+	}
+
+	// Create contract service
+	const contractService = createContractService(provider, signer, address);
+
+	// Create and initialize SkyBrowser
+	const skyBrowser = createSkyBrowser(contractService);
+	await skyBrowser.init(true);
+
+	return skyBrowser;
 };

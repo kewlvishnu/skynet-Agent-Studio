@@ -104,105 +104,115 @@ function FlowCanvas({
 		[selectedAgent]
 	);
 
-	const deleteNode = useCallback((nodeId: string) => {
-		setNodes((currentNodes) => {
-			const nodeToDelete = currentNodes.find(
-				(node) => node.id === nodeId
-			);
-
-			// If it's a container node, also delete all child nodes
-			if (nodeToDelete?.type === "agentContainer") {
-				const childNodes = currentNodes.filter(
-					(node) => node.parentId === nodeId
+	const deleteNode = useCallback(
+		(nodeId: string) => {
+			setNodes((currentNodes) => {
+				const nodeToDelete = currentNodes.find(
+					(node) => node.id === nodeId
 				);
-				const childNodeIds = childNodes.map((child) => child.id);
 
-				// Remove edges connected to child nodes
-				setEdges((currentEdges) => {
-					return currentEdges.filter(
-						(edge) =>
-							!childNodeIds.includes(edge.source) &&
-							!childNodeIds.includes(edge.target) &&
-							edge.source !== nodeId &&
-							edge.target !== nodeId
+				// If it's a container node, also delete all child nodes
+				if (nodeToDelete?.type === "agentContainer") {
+					const childNodes = currentNodes.filter(
+						(node) => node.parentId === nodeId
 					);
-				});
+					const childNodeIds = childNodes.map((child) => child.id);
 
-				// Remove container and all child nodes
-				return currentNodes.filter(
-					(node) => node.id !== nodeId && node.parentId !== nodeId
-				);
-			}
+					// Remove edges connected to child nodes
+					setEdges((currentEdges) => {
+						return currentEdges.filter(
+							(edge) =>
+								!childNodeIds.includes(edge.source) &&
+								!childNodeIds.includes(edge.target) &&
+								edge.source !== nodeId &&
+								edge.target !== nodeId
+						);
+					});
 
-			// Check if this is a child node (has a parent)
-			const parentId = nodeToDelete?.parentId;
-
-			// Handle regular node deletion
-			setEdges((currentEdges) => {
-				// Find incoming and outgoing edges
-				const incomingEdges = currentEdges.filter(
-					(edge) => edge.target === nodeId
-				);
-				const outgoingEdges = currentEdges.filter(
-					(edge) => edge.source === nodeId
-				);
-
-				// Create new connecting edges (reconnect the flow)
-				const newEdges = [];
-				for (const incomingEdge of incomingEdges) {
-					for (const outgoingEdge of outgoingEdges) {
-						// Avoid self-loops
-						if (incomingEdge.source !== outgoingEdge.target) {
-							newEdges.push({
-								id: `reconnect-${incomingEdge.source}-${
-									outgoingEdge.target
-								}-${Date.now()}-${Math.random()
-									.toString(36)
-									.substr(2, 9)}`,
-								source: incomingEdge.source,
-								target: outgoingEdge.target,
-								type: "custom",
-								data: {},
-							});
-						}
+					// Clear selected agent if the deleted container was the selected agent
+					if (selectedAgent && selectedAgent.id === nodeToDelete.id) {
+						setSelectedAgent(null);
 					}
+
+					// Remove container and all child nodes
+					return currentNodes.filter(
+						(node) => node.id !== nodeId && node.parentId !== nodeId
+					);
 				}
 
-				// Remove edges connected to the deleted node
-				const filteredEdges = currentEdges.filter(
-					(edge) => edge.source !== nodeId && edge.target !== nodeId
+				// Check if this is a child node (has a parent)
+				const parentId = nodeToDelete?.parentId;
+
+				// Handle regular node deletion
+				setEdges((currentEdges) => {
+					// Find incoming and outgoing edges
+					const incomingEdges = currentEdges.filter(
+						(edge) => edge.target === nodeId
+					);
+					const outgoingEdges = currentEdges.filter(
+						(edge) => edge.source === nodeId
+					);
+
+					// Create new connecting edges (reconnect the flow)
+					const newEdges = [];
+					for (const incomingEdge of incomingEdges) {
+						for (const outgoingEdge of outgoingEdges) {
+							// Avoid self-loops
+							if (incomingEdge.source !== outgoingEdge.target) {
+								newEdges.push({
+									id: `reconnect-${incomingEdge.source}-${
+										outgoingEdge.target
+									}-${Date.now()}-${Math.random()
+										.toString(36)
+										.substr(2, 9)}`,
+									source: incomingEdge.source,
+									target: outgoingEdge.target,
+									type: "custom",
+									data: {},
+								});
+							}
+						}
+					}
+
+					// Remove edges connected to the deleted node
+					const filteredEdges = currentEdges.filter(
+						(edge) =>
+							edge.source !== nodeId && edge.target !== nodeId
+					);
+
+					// Return filtered edges plus new reconnecting edges
+					return [...filteredEdges, ...newEdges];
+				});
+
+				// Remove the node and update parent container if needed
+				const updatedNodes = currentNodes.filter(
+					(node) => node.id !== nodeId
 				);
 
-				// Return filtered edges plus new reconnecting edges
-				return [...filteredEdges, ...newEdges];
+				// If this was a child node, update the parent container's child count
+				if (parentId) {
+					const remainingChildNodes = updatedNodes.filter(
+						(node) => node.parentId === parentId
+					);
+					return updatedNodes.map((node) =>
+						node.id === parentId
+							? {
+									...node,
+									data: {
+										...node.data,
+										childNodeCount:
+											remainingChildNodes.length,
+									},
+							  }
+							: node
+					);
+				}
+
+				return updatedNodes;
 			});
-
-			// Remove the node and update parent container if needed
-			const updatedNodes = currentNodes.filter(
-				(node) => node.id !== nodeId
-			);
-
-			// If this was a child node, update the parent container's child count
-			if (parentId) {
-				const remainingChildNodes = updatedNodes.filter(
-					(node) => node.parentId === parentId
-				);
-				return updatedNodes.map((node) =>
-					node.id === parentId
-						? {
-								...node,
-								data: {
-									...node.data,
-									childNodeCount: remainingChildNodes.length,
-								},
-						  }
-						: node
-				);
-			}
-
-			return updatedNodes;
-		});
-	}, []);
+		},
+		[selectedAgent, setSelectedAgent]
+	);
 
 	const onNodesChange: OnNodesChange = useCallback(
 		(changes) => setNodes((nds) => applyNodeChanges(changes, nds)),

@@ -15,7 +15,7 @@ import {
 	ResponsePanel,
 	LogsPanel,
 } from "./test-flow-components";
-import { MoveHorizontal, Plus } from "lucide-react";
+import { MoveHorizontal, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { AgentTestStatus, Subnet } from "@/types/workflow";
 import { AppCryptoContext } from "@/providers/AppCryptoProvider";
 import { Web3Context, isConnectedState } from "@/providers/Web3ContextProvider";
@@ -72,7 +72,7 @@ export default function RightWorkspaceSidebar({
 	onWidthChange,
 	selectedAgent,
 }: RightWorkspaceSidebarProps) {
-	const { open, state } = useSidebar();
+	const { open, state, setOpen, toggleSidebar } = useSidebar();
 	const [prompt, setPrompt] = useState("");
 	const [isSubmitted, setIsSubmitted] = useState(false);
 	const [testStatus, setTestStatus] = useState<AgentTestStatus>({
@@ -153,8 +153,16 @@ export default function RightWorkspaceSidebar({
 	}, [isResizing, handleMouseMove, handleMouseUp]);
 
 	useEffect(() => {
-		onWidthChange?.(state === "collapsed" ? 0 : sidebarWidth);
-	}, [state, sidebarWidth, onWidthChange]);
+		onWidthChange?.(open ? sidebarWidth : 0);
+	}, [open, sidebarWidth, onWidthChange]);
+
+	// Control sidebar visibility based on agent selection
+	useEffect(() => {
+		if (!selectedAgent) {
+			setOpen(false);
+		}
+		// Removed automatic opening to allow full manual control
+	}, [selectedAgent, setOpen]);
 
 	const handleMouseDown = useCallback(
 		(e: React.MouseEvent) => {
@@ -260,6 +268,12 @@ export default function RightWorkspaceSidebar({
 
 		setPrompt(prompt);
 		setIsSubmitted(true);
+
+		// Disconnect any existing socket connection
+		if (socketRef.current && socketRef.current.connected) {
+			socketRef.current.disconnect();
+			socketRef.current = null;
+		}
 
 		// Initialize execution status
 		resetExecutionStatus();
@@ -865,16 +879,6 @@ export default function RightWorkspaceSidebar({
 
 					socketRef.current?.disconnect();
 				}
-
-				if (statusValue === "completed") {
-					setTestStatus((prev) => ({
-						...prev,
-						progress: 100,
-						status: "test completed",
-						isRunning: false,
-						message: "Test completed successfully",
-					}));
-				}
 			});
 
 			socketRef.current.on("error", (error) => {
@@ -1044,18 +1048,19 @@ export default function RightWorkspaceSidebar({
 	return (
 		<div>
 			<InsufficientFundsModal />
+
 			<Sidebar
 				side="right"
 				className={`border-r border-gray absolute top-0 right-0 h-full bg-background z-20 ${
-					state === "collapsed" ? "w-0" : ""
+					!open ? "w-0" : ""
 				}`}
 				style={{
-					width: state === "collapsed" ? 0 : sidebarWidth,
+					width: !open ? 0 : sidebarWidth,
 				}}
 				collapsible="icon"
 				ref={sidebarRef}
 			>
-				{state !== "collapsed" && (
+				{open && (
 					<div
 						ref={resizeRef}
 						className="absolute left-0 top-0 w-1 h-full cursor-col-resize bg-transparent hover:bg-blue-500/20 transition-colors z-30"
@@ -1068,11 +1073,14 @@ export default function RightWorkspaceSidebar({
 				<SidebarHeader className="p-4 border-b border-gray">
 					<div className="flex items-center justify-between">
 						<h2 className="font-semibold">
-							{selectedAgent?.agentName || "Test Agent"}
+							{selectedAgent?.agentName || "Agent Testing"}
 						</h2>
 						<p className="text-xs text-muted-foreground">
-							NFTs: {nfts.length}
-							{selectedNft && ` | #${selectedNft}`}
+							{selectedAgent
+								? `NFTs: ${nfts.length}${
+										selectedNft ? ` | #${selectedNft}` : ""
+								  }`
+								: "No agent selected"}
 						</p>
 					</div>
 				</SidebarHeader>
