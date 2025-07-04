@@ -47,8 +47,8 @@ export default function AgentContainer({
 }: AgentContainerProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const [containerSize, setContainerSize] = useState({
-		width: 800,
-		height: 600,
+		width: 400,
+		height: 300,
 	});
 	const [isTransitioning, setIsTransitioning] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -222,8 +222,8 @@ export default function AgentContainer({
 		}
 
 		if (childNodes.length === 0) {
-			// Reasonable default size when empty
-			const emptySize = { width: 800, height: 600 };
+			// More compact default size when empty
+			const emptySize = { width: 400, height: 300 };
 			if (
 				containerSize.width !== emptySize.width ||
 				containerSize.height !== emptySize.height
@@ -247,6 +247,10 @@ export default function AgentContainer({
 			return;
 		}
 
+		// Get current container position
+		const containerNode = getNodes().find((n) => n.id === id);
+		if (!containerNode) return;
+
 		// Find the bounds of all child nodes
 		let minX = Infinity;
 		let minY = Infinity;
@@ -257,7 +261,6 @@ export default function AgentContainer({
 			let nodeWidth = node.measured?.width || 400;
 			let nodeHeight = node.measured?.height || 200;
 
-			// Adjust dimensions based on node type and state
 			if (node.type === "tool") {
 				nodeWidth = node.measured?.width || 384;
 				nodeHeight =
@@ -279,59 +282,73 @@ export default function AgentContainer({
 			maxY = Math.max(maxY, nodeBottom);
 		});
 
-		// Add padding around the nodes
-		const padding = 80;
-		const topPadding = 100;
+		const padding = 60;
+		const topPadding = 50;
+		const bottomPadding = 120; 
 
-		// Calculate the actual needed size
-		const width = maxX - minX + 2 * padding;
-		const height = maxY - minY + topPadding + padding;
+		const leftShift = minX < padding ? padding - minX : 0;
+		const topShift = minY < topPadding ? topPadding - minY : 0;
 
-		// Ensure minimum sizes
-		const minWidth = 600;
-		const minHeight = 400;
+		const width = Math.max(maxX + padding + leftShift, 400);
+		const height = Math.max(maxY + bottomPadding + topShift, 300);
 
 		const newSize = {
-			width: Math.max(width, minWidth),
-			height: Math.max(height, minHeight),
+			width: width,
+			height: height,
 		};
 
-		// Only update if size actually changed significantly (avoid micro-updates)
-		const threshold = 5; // pixels
-		if (
-			Math.abs(newSize.width - containerSize.width) > threshold ||
-			Math.abs(newSize.height - containerSize.height) > threshold
-		) {
-			setContainerSize(newSize);
-			setNodes((nodes) =>
-				nodes.map((node) =>
-					node.id === id
-						? {
-								...node,
-								style: {
-									...node.style,
-									width: newSize.width,
-									height: newSize.height,
-								},
-						  }
-						: node
-				)
-			);
-		}
-	}, [id, setNodes, containerSize, isExpanded, childNodes]);
+		const sizeChanged =
+			Math.abs(newSize.width - containerSize.width) > 5 ||
+			Math.abs(newSize.height - containerSize.height) > 5;
 
-	// Debounced version of updateContainerSize for performance
+		const needsShift = leftShift > 0 || topShift > 0;
+
+		if (sizeChanged || needsShift) {
+			setContainerSize(newSize);
+
+			setNodes((nodes) => {
+				const updates = nodes.map((node) => {
+					if (node.id === id) {
+						return {
+							...node,
+							position: needsShift
+								? {
+										x: containerNode.position.x - leftShift,
+										y: containerNode.position.y - topShift,
+								  }
+								: node.position,
+							style: {
+								...node.style,
+								width: newSize.width,
+								height: newSize.height,
+							},
+						};
+					} else if (node.parentId === id && needsShift) {
+						return {
+							...node,
+							position: {
+								x: node.position.x + leftShift,
+								y: node.position.y + topShift,
+							},
+						};
+					}
+					return node;
+				});
+
+				return updates;
+			});
+		}
+	}, [id, setNodes, getNodes, containerSize, isExpanded, childNodes]);
+
 	const debouncedUpdateContainerSize = useMemo(
 		() => debounce(updateContainerSize, 100),
 		[updateContainerSize]
 	);
 
-	// Update on child node changes
 	useEffect(() => {
 		debouncedUpdateContainerSize();
 	}, [childNodes, debouncedUpdateContainerSize]);
 
-	// Update when expansion state changes
 	useEffect(() => {
 		if (!isTransitioning) {
 			updateContainerSize();
@@ -423,7 +440,7 @@ export default function AgentContainer({
 							)}
 
 							{data.description && (
-								<div className="mt-2 p-2 bg-background/30 rounded text-xs text-muted-foreground">
+								<div className="mt-4 p-3 bg-background/30 rounded text-sm text-muted-foreground">
 									{data.description}
 								</div>
 							)}

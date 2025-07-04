@@ -23,7 +23,7 @@ import "@xyflow/react/dist/style.css";
 import { nodeTypes } from "@/components/nodes";
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Copy } from "lucide-react";
+import { Copy, RotateCcw } from "lucide-react";
 import CustomEdge from "@/components/edge/custom-edge";
 import RightWorkspaceSidebar from "@/components/sidebar/right-workspace-sidebar";
 import WorkspaceSidebar from "@/components/sidebar/workspace-sidebar";
@@ -65,7 +65,7 @@ function FlowCanvas({
 	selectedAgent: any;
 	setSelectedAgent: (agent: any) => void;
 }) {
-	const { screenToFlowPosition } = useReactFlow();
+	const { screenToFlowPosition, setViewport } = useReactFlow();
 	const { open } = useSidebar();
 	const [nodes, setNodes] = useState<Node[]>([]);
 
@@ -653,6 +653,10 @@ function FlowCanvas({
 		[screenToFlowPosition, deleteNode, nodes]
 	);
 
+	const resetFlow = useCallback(() => {
+		setViewport({ x: 200, y: 100, zoom: 0.8 });
+	}, [setViewport]);
+
 	const exportConnections = useCallback(() => {
 		const nodeConnections = nodes.map((node) => {
 			const incomingConnections = edges
@@ -738,6 +742,8 @@ function FlowCanvas({
 				nodes={nodes}
 				edges={edges}
 				defaultViewport={{ x: 200, y: 100, zoom: 0.8 }}
+				minZoom={0.1}
+				maxZoom={3}
 			>
 				<Background
 					variant={BackgroundVariant.Dots}
@@ -755,6 +761,15 @@ function FlowCanvas({
 							: "20px",
 				}}
 			>
+				<Button
+					onClick={resetFlow}
+					className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+					size="sm"
+					title="Reset view to default position and zoom"
+				>
+					<RotateCcw className="w-4 h-4" />
+					Reset View
+				</Button>
 				<Button
 					onClick={exportConnections}
 					className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"

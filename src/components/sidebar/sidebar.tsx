@@ -1,10 +1,12 @@
 "use client";
 import {
 	Bot,
+	Home,
 	LibraryBig,
 	LogOutIcon,
 	ScrollText,
 	Settings,
+	SparklesIcon,
 } from "lucide-react";
 
 import {
@@ -24,6 +26,11 @@ import Image from "next/image";
 import Link from "next/link";
 
 const navigationItems = [
+	{
+		icon: SparklesIcon,
+		name: "Studio",
+		url: "/",
+	},
 	{
 		icon: Bot,
 		name: "Agents",

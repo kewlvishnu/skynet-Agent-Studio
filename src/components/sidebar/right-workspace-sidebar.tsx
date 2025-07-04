@@ -160,8 +160,9 @@ export default function RightWorkspaceSidebar({
 	useEffect(() => {
 		if (!selectedAgent) {
 			setOpen(false);
+		} else {
+			setOpen(true);
 		}
-		// Removed automatic opening to allow full manual control
 	}, [selectedAgent, setOpen]);
 
 	const handleMouseDown = useCallback(

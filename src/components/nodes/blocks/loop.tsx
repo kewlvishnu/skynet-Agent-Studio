@@ -73,9 +73,13 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 	const [isTransitioning, setIsTransitioning] = useState(false);
 	const [containerSize, setContainerSize] = useState({
-		width: 900,
+		width: 600,
 		height: 400,
 	});
+
+	// Track if we're currently updating to prevent loops
+	const isUpdatingRef = useRef(false);
+	const lastUpdateRef = useRef({ width: 600, height: 400, x: 0, y: 0 });
 
 	// Use React Flow's store to subscribe to node changes more efficiently
 	const childNodes = useStore((state) =>
@@ -294,6 +298,9 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 	);
 
 	const updateContainerSize = useCallback(() => {
+		// Prevent recursive updates
+		if (isUpdatingRef.current) return;
+
 		if (!isExpanded) {
 			const minSize = { width: 350, height: 150 };
 			if (
@@ -301,6 +308,7 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 				containerSize.height !== minSize.height
 			) {
 				setContainerSize(minSize);
+				isUpdatingRef.current = true;
 				setNodes((nodes) =>
 					nodes.map((node) =>
 						node.id === id
@@ -315,17 +323,21 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 							: node
 					)
 				);
+				setTimeout(() => {
+					isUpdatingRef.current = false;
+				}, 100);
 			}
 			return;
 		}
 
 		if (childNodes.length === 0) {
-			const emptySize = { width: 900, height: 400 };
+			const emptySize = { width: 600, height: 400 };
 			if (
 				containerSize.width !== emptySize.width ||
 				containerSize.height !== emptySize.height
 			) {
 				setContainerSize(emptySize);
+				isUpdatingRef.current = true;
 				setNodes((nodes) =>
 					nodes.map((node) =>
 						node.id === id
@@ -340,9 +352,16 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 							: node
 					)
 				);
+				setTimeout(() => {
+					isUpdatingRef.current = false;
+				}, 100);
 			}
 			return;
 		}
+
+		// Get current container position
+		const containerNode = getNodes().find((n) => n.id === id);
+		if (!containerNode) return;
 
 		// Find the bounds of all child nodes
 		let minX = Infinity;
@@ -354,7 +373,6 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 			let nodeWidth = node.measured?.width || 400;
 			let nodeHeight = node.measured?.height || 200;
 
-			// Adjust dimensions based on node type and state
 			if (node.type === "tool") {
 				nodeWidth = node.measured?.width || 384;
 				nodeHeight =
@@ -376,61 +394,104 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 			maxY = Math.max(maxY, nodeBottom);
 		});
 
-		// Add padding around the nodes
-		const padding = 80;
-		const topPadding = 120; // Extra space for header and controls
+		const padding = 60;
+		const topPadding = 50;
+		const bottomPadding = 120;
 
-		// Calculate the actual needed size
-		const width = maxX - minX + 2 * padding;
-		const height = maxY - minY + topPadding + padding;
+		const leftShift = minX < padding ? padding - minX : 0;
+		const topShift = minY < topPadding ? topPadding - minY : 0;
 
-		// Ensure minimum sizes
-		const minWidth = 900; // Minimum for 2 nodes side by side
-		const minHeight = 400;
+		const width = Math.max(maxX + padding + leftShift, 400);
+		const height = Math.max(maxY + bottomPadding + topShift, 300);
 
 		const newSize = {
-			width: Math.max(width, minWidth),
-			height: Math.max(height, minHeight),
+			width: width,
+			height: height,
 		};
 
-		// Only update if size actually changed significantly (avoid micro-updates)
-		const threshold = 5; // pixels
-		if (
-			Math.abs(newSize.width - containerSize.width) > threshold ||
-			Math.abs(newSize.height - containerSize.height) > threshold
-		) {
-			setContainerSize(newSize);
-			setNodes((nodes) =>
-				nodes.map((node) =>
-					node.id === id
-						? {
-								...node,
-								style: {
-									...node.style,
-									width: newSize.width,
-									height: newSize.height,
-								},
-						  }
-						: node
-				)
-			);
-		}
-	}, [id, setNodes, containerSize, isExpanded, childNodes]);
+		// Check if update is actually needed
+		const sizeChanged =
+			Math.abs(newSize.width - lastUpdateRef.current.width) > 5 ||
+			Math.abs(newSize.height - lastUpdateRef.current.height) > 5;
 
-	// Debounced version of updateContainerSize for performance
+		const positionChanged =
+			Math.abs(leftShift - lastUpdateRef.current.x) > 5 ||
+			Math.abs(topShift - lastUpdateRef.current.y) > 5;
+
+		const needsUpdate = sizeChanged || positionChanged;
+
+		if (needsUpdate) {
+			// Update our tracking refs
+			lastUpdateRef.current = {
+				width: newSize.width,
+				height: newSize.height,
+				x: leftShift,
+				y: topShift,
+			};
+
+			setContainerSize(newSize);
+			isUpdatingRef.current = true;
+
+			setNodes((nodes) => {
+				const updates = nodes.map((node) => {
+					if (node.id === id) {
+						return {
+							...node,
+							position:
+								leftShift > 0 || topShift > 0
+									? {
+											x:
+												containerNode.position.x -
+												leftShift,
+											y:
+												containerNode.position.y -
+												topShift,
+									  }
+									: node.position,
+							style: {
+								...node.style,
+								width: newSize.width,
+								height: newSize.height,
+							},
+						};
+					} else if (
+						node.parentId === id &&
+						(leftShift > 0 || topShift > 0)
+					) {
+						return {
+							...node,
+							position: {
+								x: node.position.x + leftShift,
+								y: node.position.y + topShift,
+							},
+						};
+					}
+					return node;
+				});
+
+				return updates;
+			});
+
+			// Reset the updating flag after a delay
+			setTimeout(() => {
+				isUpdatingRef.current = false;
+			}, 100);
+		}
+	}, [id, setNodes, getNodes, containerSize, isExpanded, childNodes]);
+
 	const debouncedUpdateContainerSize = useMemo(
-		() => debounce(updateContainerSize, 100),
+		() => debounce(updateContainerSize, 150),
 		[updateContainerSize]
 	);
 
-	// Update on child node changes
 	useEffect(() => {
-		debouncedUpdateContainerSize();
-	}, [childNodes, debouncedUpdateContainerSize]);
+		if (!isUpdatingRef.current) {
+			debouncedUpdateContainerSize();
+		}
+	}, [childNodes.length, debouncedUpdateContainerSize]);
 
-	// Update when expansion state changes
 	useEffect(() => {
-		if (!isTransitioning) {
+		if (!isTransitioning && !isUpdatingRef.current) {
 			updateContainerSize();
 		}
 	}, [isExpanded, updateContainerSize, isTransitioning]);
@@ -440,7 +501,6 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 		setIsExpanded(newExpandedState);
 		setIsTransitioning(true);
 
-		// Hide/show child nodes when container is collapsed/expanded
 		if (childNodes.length > 0) {
 			setNodes((nodes) =>
 				nodes.map((node) => {
@@ -455,7 +515,6 @@ export default function LoopNode({ id, data }: LoopNodeProps) {
 			);
 		}
 
-		// Force size recalculation when expanding
 		if (newExpandedState) {
 			setTimeout(() => {
 				updateContainerSize();
