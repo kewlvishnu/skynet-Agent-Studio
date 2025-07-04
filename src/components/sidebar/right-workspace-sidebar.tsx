@@ -12,9 +12,9 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
 	PromptInputSection,
 	TabNavigation,
-	ResponsePanel,
 	LogsPanel,
 } from "./test-flow-components";
+import { UpdatedResponsePanel } from "./test-flow-components/updated-response-panel";
 import { MoveHorizontal, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { AgentTestStatus, Subnet } from "@/types/workflow";
 import { AppCryptoContext } from "@/providers/AppCryptoProvider";
@@ -33,18 +33,22 @@ import { io, Socket } from "socket.io-client";
 import toast from "react-hot-toast";
 import { Button } from "../ui/button";
 import { useExecutionStatus } from "@/providers/ExecutionStatusProvider";
+import { normalizeWorkflowItemIDs } from "@/utils/workflowNormalizer";
+import { useUnifiedWorkflowManager } from "@/hooks/use-unified-workflow-manager";
+import {
+	calculateWorkflowProgress,
+	generateWorkflowItems,
+} from "@/utils/workflow-helpers";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+	STATUS,
+	TEXT,
+	SOCKET_CONFIG,
+	VALIDATION,
+	UI_CONFIG,
+} from "@/config/constants";
 
-// Interface for subnet response data
-interface SubnetResponseData {
-	itemID: string;
-	subnetName: string;
-	status: string;
-	responseMessage?: string;
-	responseData?: Record<string, unknown>;
-	files?: { name: string; data: string; type: string }[];
-	fileData?: string;
-	contentType?: string;
-}
+// Unified workflow management system replaces the old response tracking
 
 // Helper function to safely format image sources
 const getImageSrc = (data: string, contentType: string): string => {
@@ -61,29 +65,32 @@ const getImageSrc = (data: string, contentType: string): string => {
 
 interface RightWorkspaceSidebarProps {
 	onWidthChange?: (width: number) => void;
-	selectedAgent?: {
-		id: string;
-		agentName: string;
-		subnets: Subnet[];
-	} | null;
+	selectedAgents?: {
+		[id: string]: {
+			id: string;
+			agentName: string;
+			subnets: Subnet[];
+		};
+	};
+	edges?: any[];
 }
 
 export default function RightWorkspaceSidebar({
 	onWidthChange,
-	selectedAgent,
+	selectedAgents,
+	edges,
 }: RightWorkspaceSidebarProps) {
 	const { open, state, setOpen, toggleSidebar } = useSidebar();
 	const [prompt, setPrompt] = useState("");
 	const [isSubmitted, setIsSubmitted] = useState(false);
 	const [testStatus, setTestStatus] = useState<AgentTestStatus>({
 		isRunning: false,
-		status: "idle",
+		status: STATUS.IDLE,
 		progress: 0,
 		logs: [],
 	});
-	const [subnetResponses, setSubnetResponses] = useState<
-		SubnetResponseData[]
-	>([]);
+	// Replace old response management with unified workflow manager
+	const workflowManager = useUnifiedWorkflowManager();
 	const socketRef = useRef<Socket | null>(null);
 	const {
 		executionStatus,
@@ -92,11 +99,13 @@ export default function RightWorkspaceSidebar({
 		stopExecution,
 	} = useExecutionStatus();
 	const sidebarRef = useRef<HTMLDivElement>(null);
-	const [sidebarWidth, setSidebarWidth] = useState(352);
+	const [sidebarWidth, setSidebarWidth] = useState<number>(
+		UI_CONFIG.SIDEBAR.DEFAULT_WIDTH
+	);
 	const [isResizing, setIsResizing] = useState(false);
 	const resizeRef = useRef<HTMLDivElement>(null);
 	const startXRef = useRef<number>(0);
-	const startWidthRef = useRef<number>(352);
+	const startWidthRef = useRef<number>(UI_CONFIG.SIDEBAR.DEFAULT_WIDTH);
 
 	const [nfts, setNfts] = useState<number[]>([]);
 	const [selectedNft, setSelectedNft] = useState<string | null>(null);
@@ -108,8 +117,8 @@ export default function RightWorkspaceSidebar({
 	const web3Context = useContext(Web3Context);
 	const { provider, web3Auth } = useWeb3Auth();
 
-	const minWidth = 280;
-	const maxWidth = 600;
+	const minWidth = UI_CONFIG.SIDEBAR.MIN_WIDTH;
+	const maxWidth = UI_CONFIG.SIDEBAR.MAX_WIDTH;
 
 	const handleMouseMove = useCallback(
 		(e: MouseEvent) => {
@@ -158,12 +167,14 @@ export default function RightWorkspaceSidebar({
 
 	// Control sidebar visibility based on agent selection
 	useEffect(() => {
-		if (!selectedAgent) {
+		const hasAgents =
+			selectedAgents && Object.keys(selectedAgents).length > 0;
+		if (!hasAgents) {
 			setOpen(false);
 		} else {
 			setOpen(true);
 		}
-	}, [selectedAgent, setOpen]);
+	}, [selectedAgents, setOpen]);
 
 	const handleMouseDown = useCallback(
 		(e: React.MouseEvent) => {
@@ -251,19 +262,148 @@ export default function RightWorkspaceSidebar({
 		}
 	};
 
+	// Function to analyze connections between agents
+	const analyzeAgentConnections = (edges: any[], agents: any) => {
+		const connections: { from: string; to: string }[] = [];
+
+		edges.forEach((edge) => {
+			// Find which agents the source and target nodes belong to
+			let sourceAgent: string | undefined;
+			let targetAgent: string | undefined;
+
+			// Check if the edge connects agent containers directly
+			if (
+				edge.source?.includes("agent-container") &&
+				edge.target?.includes("agent-container")
+			) {
+				sourceAgent = edge.source;
+				targetAgent = edge.target;
+			} else {
+				// Check for connections between child nodes of different agents
+				Object.keys(agents).forEach((agentId) => {
+					const agent = agents[agentId];
+
+					// Check if source belongs to this agent
+					if (
+						agent.subnets.some((subnet: any) => {
+							const nodeId = `tool-${subnet.itemID}-`;
+							return (
+								edge.source?.includes(nodeId) ||
+								edge.source?.includes(agentId)
+							);
+						})
+					) {
+						sourceAgent = agentId;
+					}
+
+					// Check if target belongs to this agent
+					if (
+						agent.subnets.some((subnet: any) => {
+							const nodeId = `tool-${subnet.itemID}-`;
+							return (
+								edge.target?.includes(nodeId) ||
+								edge.target?.includes(agentId)
+							);
+						})
+					) {
+						targetAgent = agentId;
+					}
+				});
+			}
+
+			// If both nodes belong to different agents, we have an inter-agent connection
+			if (sourceAgent && targetAgent && sourceAgent !== targetAgent) {
+				connections.push({ from: sourceAgent, to: targetAgent });
+				console.log(
+					`Found connection: ${sourceAgent} -> ${targetAgent}`
+				);
+			}
+		});
+
+		return connections;
+	};
+
+	// Function to reorder subnets based on agent connections
+	const reorderSubnetsByConnections = (
+		subnets: any[],
+		connections: any[],
+		agentMapping: any
+	) => {
+		if (connections.length === 0) {
+			// No connections, return as is
+			return subnets;
+		}
+
+		// Create a dependency graph
+		const agentDependencies: { [agentId: string]: string[] } = {};
+		Object.keys(selectedAgents || {}).forEach((agentId) => {
+			agentDependencies[agentId] = [];
+		});
+
+		connections.forEach((conn) => {
+			if (!agentDependencies[conn.to]) {
+				agentDependencies[conn.to] = [];
+			}
+			agentDependencies[conn.to].push(conn.from);
+		});
+
+		// Topological sort to determine agent order
+		const visited = new Set<string>();
+		const temp = new Set<string>();
+		const agentOrder: string[] = [];
+
+		const visit = (agentId: string) => {
+			if (temp.has(agentId)) {
+				throw new Error(TEXT.ERRORS.CIRCULAR_DEPENDENCY);
+			}
+			if (visited.has(agentId)) return;
+
+			temp.add(agentId);
+
+			agentDependencies[agentId]?.forEach((dep) => {
+				visit(dep);
+			});
+
+			temp.delete(agentId);
+			visited.add(agentId);
+			agentOrder.push(agentId);
+		};
+
+		Object.keys(agentDependencies).forEach((agentId) => {
+			if (!visited.has(agentId)) {
+				visit(agentId);
+			}
+		});
+
+		// Reorder subnets based on agent order
+		const orderedSubnets: any[] = [];
+		agentOrder.forEach((agentId) => {
+			const agentSubnets = subnets.filter(
+				(subnet) => subnet.agentId === agentId
+			);
+			orderedSubnets.push(...agentSubnets);
+		});
+
+		// Add any remaining subnets that don't have agentId
+		const remainingSubnets = subnets.filter((subnet) => !subnet.agentId);
+		orderedSubnets.push(...remainingSubnets);
+
+		return orderedSubnets;
+	};
+
 	const handleRunTest = async (prompt: string) => {
-		if (!selectedAgent) {
-			toast.error("Please select an agent on the canvas first");
+		if (!selectedAgents || Object.keys(selectedAgents).length === 0) {
+			toast.error(TEXT.PLEASE_SELECT_AGENT);
 			return;
 		}
 
 		if (!skyBrowser || !isConnectedState(web3Context)) {
-			toast.error("Please connect your wallet first");
+			toast.error(TEXT.PLEASE_CONNECT_WALLET);
 			return;
 		}
 
 		if (!prompt.trim()) {
-			toast.error("Please enter a prompt for the test");
+			toast.error(TEXT.PLEASE_ENTER_PROMPT);
 			return;
 		}
 
@@ -276,8 +416,9 @@ export default function RightWorkspaceSidebar({
 			socketRef.current = null;
 		}
 
-		// Initialize execution status
+		// Initialize execution status and reset workflow manager
 		resetExecutionStatus();
+		workflowManager.reset();
 
 		let nftId: string | null = null;
 		if (selectedNft) {
@@ -327,19 +468,17 @@ export default function RightWorkspaceSidebar({
 
 		setTestStatus({
 			isRunning: true,
-			status: "initializing",
+			status: STATUS.INITIALIZING,
 			progress: 0,
 			message: "Initializing test run...",
-			logs: ["🔗 Connecting to Skynet User Agent..."],
+			logs: [TEXT.CONNECTING_TO_SKYNET],
 		});
-
-		setSubnetResponses([]);
 
 		try {
 			console.log("Getting authentication with retry logic...");
 			const signature = await getAuthWithRetry(skyBrowser, 3);
 			if (!signature.data) {
-				throw new Error("Authentication response missing data");
+				throw new Error(TEXT.ERRORS.AUTH_MISSING_DATA);
 			}
 
 			const authData = signature.data;
@@ -350,7 +489,7 @@ export default function RightWorkspaceSidebar({
 			) {
 				console.error("Invalid auth payload structure:", authData);
 				throw new Error(
-					`Invalid authentication payload structure. Missing: ${
+					`${TEXT.ERRORS.INVALID_AUTH_PAYLOAD}. Missing: ${
 						!authData.userAddress ? "userAddress " : ""
 					}${!authData.signature ? "signature " : ""}${
 						!authData.message ? "message" : ""
@@ -365,91 +504,181 @@ export default function RightWorkspaceSidebar({
 				messageLength: authData.message?.length,
 			});
 
-			console.log("Selected agent subnets:", selectedAgent.subnets);
-			const validatedSubnets = selectedAgent.subnets.map(
-				(subnet: any) => {
-					const cleanedSubnet = { ...subnet };
+			// Build combined workflow from all agents with connection analysis
+			const allSubnets: any[] = [];
+			let itemIdOffset = 0;
+			const agentSubnetMapping: {
+				[agentId: string]: { [originalItemId: number]: number };
+			} = {};
 
-					if (!cleanedSubnet.itemID) {
-						console.warn(`Subnet missing itemID:`, cleanedSubnet);
+			// First pass: collect all subnets and create mappings
+			Object.entries(selectedAgents).forEach(([agentId, agent]) => {
+				console.log(
+					`Processing agent: ${agent.agentName} with ${agent.subnets.length} subnets`
+				);
+				agentSubnetMapping[agentId] = {};
+
+				agent.subnets.forEach((subnet: any) => {
+					const originalItemId = subnet.itemID || 0;
+					const adjustedItemId = originalItemId + itemIdOffset;
+
+					// Store mapping for later use
+					agentSubnetMapping[agentId][originalItemId] =
+						adjustedItemId;
+
+					// Adjust itemID to avoid conflicts between agents
+					const adjustedSubnet = {
+						...subnet,
+						itemID: adjustedItemId,
+						originalItemID: originalItemId,
+						agentId: agentId, // Track which agent this subnet belongs to
+					};
+					allSubnets.push(adjustedSubnet);
+				});
+
+				// Increment offset for next agent
+				const maxItemId = Math.max(
+					...agent.subnets.map((s: any) => s.itemID || 0)
+				);
+				itemIdOffset += maxItemId + 100; // Add buffer
+			});
+
+			// Analyze agent connections to determine workflow order
+			const agentConnections = analyzeAgentConnections(
+				edges || [],
+				selectedAgents
+			);
+			console.log("Agent connections:", agentConnections);
+
+			// Reorder subnets based on agent connections
+			const orderedSubnets = reorderSubnetsByConnections(
+				allSubnets,
+				agentConnections,
+				agentSubnetMapping
+			);
+
+			// --- BEGIN: Chain agents by setting inputItemID of first subnet of next agent to last subnet of previous agent ---
+			// Get the order of agent IDs as they appear in orderedSubnets
+			const orderedAgentIds: string[] = [];
+			orderedSubnets.forEach((subnet: any) => {
+				if (
+					subnet.agentId &&
+					!orderedAgentIds.includes(subnet.agentId)
+				) {
+					orderedAgentIds.push(subnet.agentId);
+				}
+			});
+			// For each agent after the first, set the inputItemID of its first subnet to the itemID of the last subnet of the previous agent
+			for (let i = 1; i < orderedAgentIds.length; i++) {
+				const prevAgentId = orderedAgentIds[i - 1];
+				const currAgentId = orderedAgentIds[i];
+				const prevAgentSubnets = orderedSubnets.filter(
+					(s) => s.agentId === prevAgentId
+				);
+				const currAgentSubnets = orderedSubnets.filter(
+					(s) => s.agentId === currAgentId
+				);
+				const lastSubnetOfPrevAgent =
+					prevAgentSubnets[prevAgentSubnets.length - 1];
+				const firstSubnetOfCurrAgent = currAgentSubnets[0];
+				if (lastSubnetOfPrevAgent && firstSubnetOfCurrAgent) {
+					// If inputItemID is not already set, set it
+					if (
+						!firstSubnetOfCurrAgent.inputItemID ||
+						firstSubnetOfCurrAgent.inputItemID.length === 0
+					) {
+						firstSubnetOfCurrAgent.inputItemID = [
+							lastSubnetOfPrevAgent.itemID,
+						];
 					}
+				}
+			}
+			// --- END: Chain agents logic ---
 
-					if (!cleanedSubnet.subnetName) {
-						console.warn(
-							`Subnet missing subnetName:`,
-							cleanedSubnet
-						);
-					}
+			console.log(
+				"Combined subnets from all agents (ordered):",
+				orderedSubnets
+			);
+			console.log("Agent subnet mapping:", agentSubnetMapping);
+			const validatedSubnets = orderedSubnets.map((subnet: any) => {
+				const cleanedSubnet = { ...subnet };
 
-					// Validate subnetURL field
-					if (cleanedSubnet.subnetURL) {
-						if (typeof cleanedSubnet.subnetURL === "string") {
-							let url = cleanedSubnet.subnetURL.trim();
+				if (!cleanedSubnet.itemID) {
+					console.warn(`Subnet missing itemID:`, cleanedSubnet);
+				}
 
-							url = url.replace(/\s+/g, "");
+				if (!cleanedSubnet.subnetName) {
+					console.warn(`Subnet missing subnetName:`, cleanedSubnet);
+				}
 
-							if (
-								url &&
-								!url.startsWith("http://") &&
-								!url.startsWith("https://")
-							) {
-								if (url.includes(".") && !url.includes(" ")) {
-									url = "https://" + url;
-								}
+				// Validate subnetURL field
+				if (cleanedSubnet.subnetURL) {
+					if (typeof cleanedSubnet.subnetURL === "string") {
+						let url = cleanedSubnet.subnetURL.trim();
+
+						url = url.replace(/\s+/g, "");
+
+						if (
+							url &&
+							!url.startsWith("http://") &&
+							!url.startsWith("https://")
+						) {
+							if (url.includes(".") && !url.includes(" ")) {
+								url = "https://" + url;
 							}
+						}
 
-							try {
-								new URL(url);
-								cleanedSubnet.subnetURL = url;
-							} catch (e) {
-								console.warn(
-									`Invalid subnetURL for ${cleanedSubnet.subnetName}:`,
-									cleanedSubnet.subnetURL,
-									"-> setting to empty string"
-								);
-								cleanedSubnet.subnetURL = "";
-							}
-						} else {
+						try {
+							new URL(url);
+							cleanedSubnet.subnetURL = url;
+						} catch (e) {
 							console.warn(
-								`subnetURL is not a string for ${cleanedSubnet.subnetName}:`,
-								typeof cleanedSubnet.subnetURL
+								`Invalid subnetURL for ${cleanedSubnet.subnetName}:`,
+								cleanedSubnet.subnetURL,
+								"-> setting to empty string"
 							);
 							cleanedSubnet.subnetURL = "";
 						}
+					} else {
+						console.warn(
+							`subnetURL is not a string for ${cleanedSubnet.subnetName}:`,
+							typeof cleanedSubnet.subnetURL
+						);
+						cleanedSubnet.subnetURL = "";
 					}
-
-					["subnet_url"].forEach((field) => {
-						if (
-							cleanedSubnet[field] &&
-							typeof cleanedSubnet[field] === "string"
-						) {
-							try {
-								new URL(cleanedSubnet[field]);
-							} catch (e) {
-								console.warn(
-									`Invalid ${field} for ${cleanedSubnet.subnetName}:`,
-									cleanedSubnet[field]
-								);
-								cleanedSubnet[field] = "";
-							}
-						}
-					});
-
-					return cleanedSubnet;
 				}
-			);
+
+				["subnet_url"].forEach((field) => {
+					if (
+						cleanedSubnet[field] &&
+						typeof cleanedSubnet[field] === "string"
+					) {
+						try {
+							new URL(cleanedSubnet[field]);
+						} catch (e) {
+							console.warn(
+								`Invalid ${field} for ${cleanedSubnet.subnetName}:`,
+								cleanedSubnet[field]
+							);
+							cleanedSubnet[field] = "";
+						}
+					}
+				});
+
+				return cleanedSubnet;
+			});
 
 			const trimmedPrompt = prompt.trim();
 			if (!trimmedPrompt) {
-				throw new Error("Prompt cannot be empty after trimming");
+				throw new Error(TEXT.ERRORS.PROMPT_EMPTY);
 			}
 
-			if (trimmedPrompt.length > 10000) {
-				throw new Error("Prompt is too long (max 10000 characters)");
+			if (trimmedPrompt.length > VALIDATION.MAX_PROMPT_LENGTH) {
+				throw new Error(TEXT.ERRORS.PROMPT_TOO_LONG);
 			}
 
 			if (!nftId) {
-				throw new Error("No NFT ID available for testing");
+				throw new Error(TEXT.ERRORS.NO_NFT_AVAILABLE);
 			}
 
 			try {
@@ -461,19 +690,17 @@ export default function RightWorkspaceSidebar({
 					console.error(
 						`NFT ownership mismatch: NFT ${nftId} is owned by ${nftOwner}, but user is ${userAddress}`
 					);
-					throw new Error(
-						"Selected NFT is not owned by the current user"
-					);
+					throw new Error(TEXT.ERRORS.NFT_NOT_OWNED);
 				}
 
 				console.log("Using validated NFT ID for testing:", nftId);
 			} catch (nftError) {
 				console.error("Error verifying NFT ownership:", nftError);
 				throw new Error(
-					`NFT validation failed: ${
+					`${TEXT.ERRORS.NFT_VALIDATION_FAILED}: ${
 						nftError instanceof Error
 							? nftError.message
-							: "Unknown NFT error"
+							: TEXT.UNKNOWN_ERROR
 					}`
 				);
 			}
@@ -482,6 +709,22 @@ export default function RightWorkspaceSidebar({
 
 			const workflow = validatedSubnets.map(
 				(subnet: any, index: number) => {
+					// Debug inputItemID processing
+					const originalInputIds = Array.isArray(subnet.inputItemID)
+						? subnet.inputItemID
+						: Array.isArray(subnet.input_item_id)
+						? subnet.input_item_id
+						: [];
+
+					console.log(
+						`Processing subnet ${subnet.subnetName} (itemID: ${subnet.itemID}):`,
+						{
+							originalInputIds,
+							subnetInputItemID: subnet.inputItemID,
+							subnetInputItemId: subnet.input_item_id,
+						}
+					);
+
 					const workflowItem = {
 						id: subnet.id || `subnet-${index}`,
 						tags: subnet.tags || [],
@@ -519,11 +762,42 @@ export default function RightWorkspaceSidebar({
 							subnet.subnet_name ||
 							`Subnet ${index + 1}`,
 						description: subnet.description || "",
-						inputItemID: Array.isArray(subnet.inputItemID)
-							? subnet.inputItemID
-							: Array.isArray(subnet.input_item_id)
-							? subnet.input_item_id
-							: [],
+						inputItemID: (() => {
+							const originalInputIds = Array.isArray(
+								subnet.inputItemID
+							)
+								? subnet.inputItemID
+								: Array.isArray(subnet.input_item_id)
+								? subnet.input_item_id
+								: [];
+
+							// Adjust inputItemID references to match the new itemIDs
+							return originalInputIds.map((inputId: number) => {
+								// First, try to find the subnet with this original itemID across all agents
+								const correspondingSubnet = orderedSubnets.find(
+									(s: any) => s.originalItemID === inputId
+								);
+
+								if (correspondingSubnet) {
+									return correspondingSubnet.itemID;
+								}
+
+								// If not found by originalItemID, try to find by the current itemID
+								const subnetByCurrentId = orderedSubnets.find(
+									(s: any) => s.itemID === inputId
+								);
+
+								if (subnetByCurrentId) {
+									return subnetByCurrentId.itemID;
+								}
+
+								// If still not found, return the original inputId as fallback
+								console.warn(
+									`Could not map inputItemID ${inputId} for subnet ${subnet.subnetName} (itemID: ${subnet.itemID})`
+								);
+								return inputId;
+							});
+						})(),
 						authRequired: Boolean(subnet.authRequired),
 						capabilities: subnet.capabilities || [],
 						fileDownload: Boolean(
@@ -548,15 +822,24 @@ export default function RightWorkspaceSidebar({
 						);
 					}
 
+					console.log(
+						`Final workflow item ${workflowItem.subnetName}:`,
+						{
+							itemID: workflowItem.itemID,
+							inputItemID: workflowItem.inputItemID,
+						}
+					);
+
 					return workflowItem;
 				}
 			);
 
 			if (workflow.length === 0) {
-				throw new Error(
-					"Workflow cannot be empty - please add at least one subnet to your agent"
-				);
+				throw new Error(TEXT.ERRORS.WORKFLOW_EMPTY);
 			}
+
+			// Normalize the workflow to ensure sequential itemIDs
+			const normalizedWorkflow = normalizeWorkflowItemIDs([...workflow]);
 
 			const payload = {
 				prompt: trimmedPrompt,
@@ -565,7 +848,7 @@ export default function RightWorkspaceSidebar({
 					collectionID: "0",
 					nftID: validatedNftId,
 				},
-				workflow: workflow,
+				workflow: normalizedWorkflow,
 			};
 
 			logAPICall("Skynet User Agent Socket", payload, null, null);
@@ -577,75 +860,77 @@ export default function RightWorkspaceSidebar({
 					collectionID: "0",
 					nftID: validatedNftId,
 				},
-				workflow: workflow,
+				workflow: normalizedWorkflow,
 			});
 
 			if (socketRef.current) {
 				socketRef.current.disconnect();
 			}
 
-			socketRef.current = io("https://skynetuseragent-c0n1.stackos.io", {
+			socketRef.current = io(SOCKET_CONFIG.URL, {
 				transports: ["websocket"],
-				timeout: 600000,
-				reconnection: true,
-				reconnectionAttempts: 3,
-				reconnectionDelay: 2000,
+				timeout: SOCKET_CONFIG.TIMEOUT,
+				reconnection: SOCKET_CONFIG.RECONNECTION,
+				reconnectionAttempts: SOCKET_CONFIG.RECONNECTION_ATTEMPTS,
+				reconnectionDelay: SOCKET_CONFIG.RECONNECTION_DELAY,
 			});
 
-			socketRef.current.on("connect_error", (error) => {
+			socketRef.current.on(STATUS.SOCKET_EVENTS.ERROR, (error) => {
 				console.error("Socket connection error:", error);
+				workflowManager.markError();
 				setTestStatus((prev) => ({
 					...prev,
-					status: "failed",
+					status: STATUS.FAILED,
 					isRunning: false,
-					message: "Failed to connect to Skynet User Agent",
-					logs: [
-						...(prev.logs || []),
-						"❌ Connection failed - please check your internet connection and try again",
-					],
+					message: TEXT.ERRORS.CONNECTION_FAILED,
+					logs: [...(prev.logs || []), TEXT.CONNECTION_FAILED],
 				}));
 			});
 
-			socketRef.current.on("connect", () => {
+			socketRef.current.on(STATUS.SOCKET_EVENTS.CONNECT, () => {
 				setTestStatus((prev) => ({
 					...prev,
-					logs: [
-						...(prev.logs || []),
-						"✅ Connected to Skynet User Agent",
-					],
+					logs: [...(prev.logs || []), TEXT.CONNECTED_TO_SKYNET],
 				}));
 
 				console.log("Emitting process-request event with payload");
-				socketRef.current?.emit("process-request", payload);
+				socketRef.current?.emit(
+					STATUS.SOCKET_EVENTS.PROCESS_REQUEST,
+					payload
+				);
 
 				setTestStatus((prev) => ({
 					...prev,
 					logs: [
 						...(prev.logs || []),
-						"📤 Sent test request to Skynet User Agent",
-						`🔧 Workflow contains ${workflow.length} subnet(s)`,
-						`🎯 Using NFT #${validatedNftId} for execution`,
+						TEXT.SENT_TEST_REQUEST,
+						TEXT.LOGS.WORKFLOW_CONTAINS(normalizedWorkflow.length),
+						TEXT.LOGS.USING_NFT(validatedNftId),
 					],
 				}));
 			});
 
-			socketRef.current.on("status", (data) => {
+			socketRef.current.on(STATUS.SOCKET_EVENTS.STATUS, (data) => {
 				console.log("Received status update:", data);
 
+				// Update unified workflow manager
+				const normalizedResponse = workflowManager.updateResponse(data);
+
+				// Extract status info for logs
 				let statusData = data;
 				if (
 					Array.isArray(data) &&
 					data.length > 1 &&
-					data[0] === "status"
+					data[0] === STATUS.SOCKET_EVENTS.STATUS
 				) {
 					statusData = data[1];
 				}
 
-				const statusValue = statusData?.status || "unknown";
-				const subnet = statusData?.subnet || "unknown";
-				const itemID = statusData?.itemID || "unknown";
+				const statusValue = statusData?.status || STATUS.UNKNOWN;
+				const subnet = statusData?.subnet || STATUS.UNKNOWN;
+				const itemID = statusData?.itemID || STATUS.UNKNOWN;
 
-				const subnetInfo = workflow.find((s: any) => {
+				const subnetInfo = normalizedWorkflow.find((s: any) => {
 					return (
 						s.itemID?.toString() === itemID?.toString() ||
 						s.subnetName === subnet ||
@@ -656,53 +941,48 @@ export default function RightWorkspaceSidebar({
 				const subnetName = subnetInfo
 					? subnetInfo.subnetName
 					: typeof subnet === "object"
-					? subnet.subnetName || "Unknown Subnet"
+					? subnet.subnetName || STATUS.UNKNOWN_SUBNET
 					: subnet;
-				const totalSubnets = workflow.length;
-				let progress = 0;
 
 				console.log(
 					`Status: ${statusValue} | Subnet: ${subnetName} | ItemID: ${itemID}`
 				);
 
-				if (statusValue === "starting") {
-					progress = 10;
-					// Update execution status context
+				// Update test status for logs and progress
+				if (statusValue === STATUS.STARTING) {
 					updateExecutionStatus({
 						isRunning: true,
 						currentSubnet: subnetName,
 						subnetStatuses: {
 							...executionStatus.subnetStatuses,
-							[String(itemID)]: "processing",
+							[String(itemID)]: STATUS.PROCESSING,
 						},
 					});
-					setTestStatus((prev) => ({
-						...prev,
-						status: "initializing",
-						progress: 10,
-						message: "Starting subnet processing...",
-						logs: [
-							...(prev.logs || []),
-							`🚀 Starting ${subnetName} [ID:${itemID}]...`,
-						],
-					}));
-				} else if (statusValue === "processing") {
-					const currentIndex = workflow.findIndex((s: any) => {
-						return (
-							s.itemID?.toString() === itemID?.toString() ||
-							s.subnetName === subnet ||
-							s.id === itemID?.toString()
-						);
-					});
-					progress = Math.floor((currentIndex / totalSubnets) * 100);
 
-					// Update execution status context
+					if (
+						subnetName &&
+						itemID &&
+						subnetName !== STATUS.UNKNOWN &&
+						itemID !== STATUS.UNKNOWN
+					) {
+						setTestStatus((prev) => ({
+							...prev,
+							status: STATUS.INITIALIZING,
+							progress: 10,
+							message: "Starting subnet processing...",
+							logs: [
+								...(prev.logs || []),
+								TEXT.LOGS.STARTING_SUBNET(subnetName, itemID),
+							],
+						}));
+					}
+				} else if (statusValue === STATUS.PROCESSING) {
 					updateExecutionStatus({
 						isRunning: true,
 						currentSubnet: subnetName,
 						subnetStatuses: {
 							...executionStatus.subnetStatuses,
-							[String(itemID)]: "processing",
+							[String(itemID)]: STATUS.PROCESSING,
 						},
 					});
 
@@ -715,135 +995,39 @@ export default function RightWorkspaceSidebar({
 						);
 						return {
 							...prev,
-							status: "processing",
-							progress: progress,
+							status: STATUS.PROCESSING,
 							currentSubnet: subnetName,
 							message: `Processing ${subnetName}...`,
 							logs: [
 								...logs,
-								`🔄 Processing ${subnetName} [ID:${itemID}]...`,
+								TEXT.LOGS.PROCESSING_SUBNET(subnetName, itemID),
 							],
 						};
 					});
-				} else if (statusValue === "done") {
-					const currentIndex = workflow.findIndex((s: any) => {
-						return (
-							s.itemID?.toString() === itemID?.toString() ||
-							s.subnetName === subnet ||
-							s.id === itemID?.toString()
-						);
-					});
-					progress = Math.floor(
-						((currentIndex + 1) / totalSubnets) * 100
-					);
-
-					// Update execution status context - mark subnet as completed
+				} else if (
+					statusValue === STATUS.DONE ||
+					statusValue === STATUS.COMPLETED
+				) {
 					updateExecutionStatus({
-						isRunning: true,
-						currentSubnet: undefined,
+						isRunning: statusValue !== STATUS.COMPLETED,
+						currentSubnet:
+							statusValue === STATUS.COMPLETED
+								? undefined
+								: undefined,
 						completedSubnets: [
 							...(executionStatus.completedSubnets || []),
 							String(itemID),
 						],
 						subnetStatuses: {
 							...executionStatus.subnetStatuses,
-							[String(itemID)]: "completed",
+							[String(itemID)]: STATUS.COMPLETED,
 						},
 					});
 
-					let responseMessage = "";
-					let responseData: Record<string, unknown> | null = null;
-
-					if (statusData.response) {
-						if (typeof statusData.response === "string") {
-							responseMessage = statusData.response;
-						} else if (statusData.response.message) {
-							responseMessage = statusData.response.message;
-							responseData = statusData.response as Record<
-								string,
-								unknown
-							>;
-						} else {
-							responseData = statusData.response as Record<
-								string,
-								unknown
-							>;
-						}
-					}
-
-					let fileData = null;
-					if (statusData.fileData && statusData.contentType) {
-						const fileName =
-							statusData.fileName ||
-							`file-${Date.now()}.${
-								statusData.contentType.split("/")[1] || "bin"
-							}`;
-						const fileDataString =
-							typeof statusData.fileData === "string"
-								? statusData.fileData
-								: "";
-
-						fileData = {
-							name: fileName,
-							data: fileDataString,
-							type: statusData.contentType,
-						};
-
-						setTestStatus((prev) => ({
-							...prev,
-							logs: [
-								...(prev.logs || []),
-								`📁 ${subnetName} [ID:${itemID}] generated file: ${fileName}`,
-							],
-						}));
-					}
-
-					setSubnetResponses((prev) => {
-						const existingIndex = prev.findIndex(
-							(r) => r.itemID === itemID
-						);
-						if (existingIndex >= 0) {
-							const updated = [...prev];
-							updated[existingIndex] = {
-								...updated[existingIndex],
-								status: "completed",
-								responseMessage:
-									responseMessage ||
-									updated[existingIndex].responseMessage,
-								responseData:
-									responseData ||
-									updated[existingIndex].responseData,
-								files: fileData
-									? [
-											...(updated[existingIndex].files ||
-												[]),
-											fileData,
-									  ]
-									: updated[existingIndex].files,
-								fileData:
-									statusData.fileData ||
-									updated[existingIndex].fileData,
-								contentType:
-									statusData.contentType ||
-									updated[existingIndex].contentType,
-							};
-							return updated;
-						} else {
-							return [
-								...prev,
-								{
-									itemID,
-									subnetName,
-									status: "completed",
-									responseMessage,
-									responseData: responseData || undefined,
-									files: fileData ? [fileData] : undefined,
-									fileData: statusData.fileData,
-									contentType: statusData.contentType,
-								},
-							];
-						}
-					});
+					const logMessage =
+						statusValue === STATUS.COMPLETED
+							? TEXT.TEST_COMPLETED_SUCCESS
+							: TEXT.LOGS.SUBNET_COMPLETED(subnetName, itemID);
 
 					setTestStatus((prev) => {
 						const logs = (prev.logs || []).filter(
@@ -854,41 +1038,42 @@ export default function RightWorkspaceSidebar({
 						);
 						return {
 							...prev,
-							logs: [
-								...logs,
-								`✅ ${subnetName} [ID:${itemID}] completed`,
-							],
+							status:
+								statusValue === STATUS.COMPLETED
+									? STATUS.TEST_COMPLETED
+									: prev.status,
+							isRunning: statusValue !== STATUS.COMPLETED,
+							progress:
+								statusValue === STATUS.COMPLETED
+									? 100
+									: prev.progress,
+							message:
+								statusValue === STATUS.COMPLETED
+									? TEXT.TEST_COMPLETED_SUCCESS
+									: prev.message,
+							logs: [...logs, logMessage],
 						};
 					});
-				} else if (statusValue === "completed") {
-					progress = 100;
 
-					// Stop execution but keep completed states
-					stopExecution();
-
-					setTestStatus((prev) => ({
-						...prev,
-						status: "test completed",
-						progress: 100,
-						isRunning: false,
-						message: "Test completed successfully",
-						logs: [
-							...(prev.logs || []),
-							`✅ Test completed successfully`,
-						],
-					}));
-
-					socketRef.current?.disconnect();
+					if (statusValue === STATUS.COMPLETED) {
+						workflowManager.markCompleted();
+						stopExecution();
+						socketRef.current?.disconnect();
+					}
 				}
 			});
 
-			socketRef.current.on("error", (error) => {
+			socketRef.current.on(STATUS.SOCKET_EVENTS.ERROR, (error) => {
 				console.error("Socket error:", error);
+
+				// Update workflow manager with error
+				workflowManager.updateResponse(error);
+				workflowManager.markError();
 
 				// Stop execution on error
 				stopExecution();
 
-				let errorMessage = "An error occurred";
+				let errorMessage: string = TEXT.AN_ERROR_OCCURRED;
 				let errorDetails = "";
 
 				if (Array.isArray(error) && error.length > 1 && error[1]) {
@@ -900,14 +1085,14 @@ export default function RightWorkspaceSidebar({
 
 					if (errorData.subnet) {
 						const subnetName =
-							errorData.subnet.subnetName || "unknown";
+							errorData.subnet.subnetName || STATUS.UNKNOWN;
 						errorDetails += ` (Subnet: ${subnetName})`;
 
 						if (
 							errorData.error &&
-							errorData.error.includes("Invalid URL")
+							errorData.error.includes(TEXT.ERRORS.INVALID_URL)
 						) {
-							errorDetails += " - Check subnet URL configuration";
+							errorDetails += ` - ${TEXT.ERRORS.CHECK_SUBNET_URL}`;
 						}
 					}
 
@@ -915,15 +1100,14 @@ export default function RightWorkspaceSidebar({
 						errorMessage.includes("auth") ||
 						errorMessage.includes("unauthorized")
 					) {
-						errorDetails +=
-							" - Try refreshing your wallet connection";
+						errorDetails += ` - ${TEXT.ERRORS.REFRESH_WALLET}`;
 					}
 
 					if (
 						errorData.workflow ||
 						errorMessage.includes("workflow")
 					) {
-						errorDetails += " - Check agent subnet configuration";
+						errorDetails += ` - ${TEXT.ERRORS.CHECK_AGENT_CONFIG}`;
 					}
 				} else if (typeof error === "string") {
 					errorMessage = error;
@@ -931,19 +1115,20 @@ export default function RightWorkspaceSidebar({
 
 				setTestStatus((prev) => ({
 					...prev,
-					status: "failed",
+					status: STATUS.FAILED,
 					isRunning: false,
 					message: errorMessage,
 					logs: [
 						...(prev.logs || []),
-						`❌ Error: ${errorMessage}${
-							errorDetails ? ` - ${errorDetails}` : ""
-						}`,
+						TEXT.LOGS.ERROR_OCCURRED(
+							errorMessage +
+								(errorDetails ? ` - ${errorDetails}` : "")
+						),
 					],
 				}));
 			});
 
-			socketRef.current.on("disconnect", (reason) => {
+			socketRef.current.on(STATUS.SOCKET_EVENTS.DISCONNECT, (reason) => {
 				console.log("Socket disconnected:", reason);
 				const disconnectMessage =
 					reason === "io server disconnect"
@@ -953,12 +1138,12 @@ export default function RightWorkspaceSidebar({
 						: `Connection lost: ${reason}`;
 
 				setTestStatus((prev) => {
-					if (prev.status !== "test completed") {
+					if (prev.status !== STATUS.TEST_COMPLETED) {
 						return {
 							...prev,
 							logs: [
 								...(prev.logs || []),
-								`🔌 Disconnected from Skynet User Agent - ${disconnectMessage}`,
+								TEXT.LOGS.DISCONNECTED(disconnectMessage),
 							],
 						};
 					}
@@ -967,45 +1152,33 @@ export default function RightWorkspaceSidebar({
 			});
 		} catch (error) {
 			console.error("Error testing agent:", error);
+			workflowManager.markError();
 			setTestStatus({
 				isRunning: false,
-				status: "failed",
+				status: STATUS.FAILED,
 				progress: 0,
 				message:
 					error instanceof Error
 						? error.message
-						: "Failed to test agent",
+						: TEXT.FAILED_TO_TEST_AGENT,
 				logs: [
 					...(testStatus.logs || []),
-					`❌ Error: ${
-						error instanceof Error ? error.message : "Unknown error"
-					}`,
+					TEXT.LOGS.ERROR_OCCURRED(
+						error instanceof Error
+							? error.message
+							: TEXT.UNKNOWN_ERROR
+					),
 				],
 			});
 		}
 	};
 
-	const testResults = subnetResponses.map((response, index) => ({
-		id: index + 1,
-		testId: response.itemID,
-		subnetName: response.subnetName,
-		response: response.responseMessage || "No response message",
-		hasImage: Boolean(
-			(response.files &&
-				response.files.some((f) => f.type.startsWith("image/"))) ||
-				(response.contentType &&
-					response.contentType.startsWith("image/"))
-		),
-		fileName:
-			response.files?.[0]?.name ||
-			`file-${response.itemID}.${
-				response.contentType?.split("/")[1] || "bin"
-			}`,
-		responseData:
-			JSON.stringify(response.responseData, null, 2) || undefined,
-		fileData: response.fileData,
-		contentType: response.contentType,
-	}));
+	// Use helper functions for progress calculation and workflow item generation
+	const progress = calculateWorkflowProgress(
+		workflowManager.responses,
+		workflowManager.overallStatus
+	);
+	const workflowItems = generateWorkflowItems(selectedAgents);
 
 	const InsufficientFundsModal = () => {
 		if (!showInsufficientFundsModal) return null;
@@ -1014,11 +1187,10 @@ export default function RightWorkspaceSidebar({
 			<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 				<div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
 					<h3 className="text-lg font-semibold mb-4">
-						No NFT Available
+						{TEXT.MODAL.NO_NFT_TITLE}
 					</h3>
 					<p className="text-gray-600 dark:text-gray-300 mb-6">
-						You need an NFT to run tests. Would you like to mint one
-						now?
+						{TEXT.MODAL.NO_NFT_DESCRIPTION}
 					</p>
 					<div className="flex gap-3 justify-end">
 						<Button
@@ -1026,10 +1198,12 @@ export default function RightWorkspaceSidebar({
 							onClick={() => setShowInsufficientFundsModal(false)}
 							disabled={isMinting}
 						>
-							Cancel
+							{TEXT.MODAL.CANCEL}
 						</Button>
 						<Button onClick={handleMintNFT} disabled={isMinting}>
-							{isMinting ? "Minting..." : "Mint NFT"}
+							{isMinting
+								? TEXT.MODAL.MINTING
+								: TEXT.MODAL.MINT_NFT}
 						</Button>
 					</div>
 				</div>
@@ -1037,14 +1211,7 @@ export default function RightWorkspaceSidebar({
 		);
 	};
 
-	const currentStepToShow = (() => {
-		if (!testStatus.currentSubnet) return undefined;
-		const found = subnetResponses.find(
-			(r) => r.subnetName === testStatus.currentSubnet
-		);
-		if (found && found.status === "completed") return undefined;
-		return testStatus.currentSubnet;
-	})();
+	const currentStepToShow = workflowManager.currentStep;
 
 	return (
 		<div>
@@ -1074,30 +1241,35 @@ export default function RightWorkspaceSidebar({
 				<SidebarHeader className="p-4 border-b border-gray">
 					<div className="flex items-center justify-between">
 						<h2 className="font-semibold">
-							{selectedAgent?.agentName || "Agent Testing"}
+							{Object.keys(selectedAgents || {}).length > 1
+								? "Test Agents"
+								: "Test Agent"}
 						</h2>
 						<p className="text-xs text-muted-foreground">
-							{selectedAgent
+							{selectedAgents &&
+							Object.keys(selectedAgents).length > 0
 								? `NFTs: ${nfts.length}${
 										selectedNft ? ` | #${selectedNft}` : ""
 								  }`
-								: "No agent selected"}
+								: TEXT.NO_AGENT_SELECTED}
 						</p>
 					</div>
 				</SidebarHeader>
 				<SidebarContent className="overflow-hidden flex flex-col">
-					{!selectedAgent ? (
+					{!selectedAgents ||
+					Object.keys(selectedAgents).length === 0 ? (
 						<div className="p-4 text-center text-muted-foreground">
 							<p className="text-sm">
-								Drag an agent from the left sidebar to the
-								canvas to start testing
+								{TEXT.PLACEHOLDERS.DRAG_AGENT}
 							</p>
 						</div>
 					) : (
 						<PromptInputSection
 							onRunTest={handleRunTest}
-							placeholder={`Test ${selectedAgent.agentName}...`}
-							buttonText="Run Test"
+							placeholder={TEXT.PLACEHOLDERS.TEST_AGENTS(
+								Object.keys(selectedAgents || {}).length
+							)}
+							buttonText={TEXT.BUTTONS.RUN_TEST}
 							isProcessing={testStatus.isRunning}
 						/>
 					)}
@@ -1115,29 +1287,23 @@ export default function RightWorkspaceSidebar({
 										value="response"
 										className="h-full m-0"
 									>
-										<ResponsePanel
-											status={testStatus.status}
-											progress={testStatus.progress}
-											currentStep={currentStepToShow}
-											testResults={testResults}
+										<UpdatedResponsePanel
+											status={
+												workflowManager.overallStatus
+											}
+											progress={progress}
+											currentStep={
+												workflowManager.currentStep ||
+												undefined
+											}
+											responses={
+												workflowManager.responses
+											}
 											isLoading={
-												testStatus.isRunning
-													? true
-													: false
+												workflowManager.overallStatus ===
+												STATUS.RUNNING
 											}
-											subnetResponses={subnetResponses}
-											workflow={
-												selectedAgent?.subnets?.map(
-													(subnet, index) => ({
-														id:
-															subnet.unique_id ||
-															`subnet-${index}`,
-														itemID: subnet.itemID,
-														subnetName:
-															subnet.subnetName,
-													})
-												) || []
-											}
+											workflow={workflowItems}
 										/>
 									</TabsContent>
 

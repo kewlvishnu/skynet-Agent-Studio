@@ -4,6 +4,11 @@ import TestProgressIndicator from "./test-progress-indicator";
 import TestAccordionItem from "./test-accordion-item";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorIcon } from "react-hot-toast";
+import { useState, useEffect } from "react";
+import {
+	normalizeWorkflowResponse,
+	WorkflowStep,
+} from "@/utils/normalizeWorkflowResponse";
 
 export interface TestResult {
 	id: number;
@@ -42,6 +47,7 @@ interface ResponsePanelProps {
 	isLoading?: boolean;
 	subnetResponses?: SubnetResponseData[];
 	workflow?: WorkflowItem[];
+	rawResponses?: any[];
 }
 
 export default function ResponsePanel({
@@ -52,6 +58,7 @@ export default function ResponsePanel({
 	isLoading = false,
 	subnetResponses = [],
 	workflow = [],
+	rawResponses,
 }: ResponsePanelProps) {
 	const subnetStatusMap = new Map(
 		subnetResponses.map((response) => [response.itemID, response.status])
@@ -68,7 +75,7 @@ export default function ResponsePanel({
 
 	const isSubnetCompleted = (itemID: string) => {
 		const subnetStatus = subnetStatusMap.get(itemID);
-		return subnetStatus === "completed";
+		return subnetStatus === "completed" || subnetStatus === "done";
 	};
 
 	const hasSubnetStarted = (itemID: string) => {
@@ -124,25 +131,30 @@ export default function ResponsePanel({
 
 		return workflow.map((workflowItem, index) => {
 			const itemID = workflowItem.itemID;
+			// Find the latest testResult for this workflow step
+			const matchingResults = testResults.filter(
+				(result) => result.testId === itemID
+			);
+			const latestResult =
+				matchingResults.length > 0
+					? matchingResults[matchingResults.length - 1]
+					: undefined;
 
-			if (isSubnetCompleted(itemID)) {
-				const completedResult = completedTestResultsMap.get(itemID);
-				if (completedResult) {
-					return (
-						<TestAccordionItem
-							key={`completed-${itemID}`}
-							testNumber={index + 1}
-							testId={itemID}
-							subnetName={workflowItem.subnetName}
-							response={completedResult.response}
-							hasImage={completedResult.hasImage}
-							fileName={completedResult.fileName}
-							responseData={completedResult.responseData}
-							fileData={completedResult.fileData}
-							contentType={completedResult.contentType}
-						/>
-					);
-				}
+			if (isSubnetCompleted(itemID) && latestResult) {
+				return (
+					<TestAccordionItem
+						key={`completed-${itemID}`}
+						testNumber={index + 1}
+						testId={itemID}
+						subnetName={workflowItem.subnetName}
+						response={latestResult.response}
+						hasImage={latestResult.hasImage}
+						fileName={latestResult.fileName}
+						responseData={latestResult.responseData}
+						fileData={latestResult.fileData}
+						contentType={latestResult.contentType}
+					/>
+				);
 			}
 
 			return renderTestSkeleton(workflowItem, index + 1);
@@ -151,6 +163,26 @@ export default function ResponsePanel({
 
 	const shouldShowError =
 		status === "error" || status === "disconnected" || status === "failed";
+
+	const [steps, setSteps] = useState<WorkflowStep[]>([]);
+
+	useEffect(() => {
+		if (!rawResponses || rawResponses.length === 0) {
+			setSteps([]);
+			return;
+		}
+		// Normalize and update steps
+		const normalized = rawResponses.map(normalizeWorkflowResponse);
+
+		// Merge by id (replace if exists, add if new)
+		setSteps((prev) => {
+			const map = new Map(prev.map((s) => [s.id, s]));
+			normalized.forEach((step) =>
+				map.set(step.id, { ...map.get(step.id), ...step })
+			);
+			return Array.from(map.values());
+		});
+	}, [rawResponses]);
 
 	return (
 		<>
@@ -183,7 +215,28 @@ export default function ResponsePanel({
 							collapsible
 							className="space-y-2"
 						>
-							{generateDisplayTests()}
+							{!steps || steps.length === 0 ? (
+								<div>No steps yet.</div>
+							) : (
+								steps.map((step) => (
+									<div
+										key={step.id}
+										style={{ marginBottom: 16 }}
+									>
+										<div>
+											{step.status === "success"
+												? "✔️"
+												: step.status === "error"
+												? "❌"
+												: step.status === "processing"
+												? "⏳"
+												: "…"}{" "}
+											<b>{step.name}</b> [ID: {step.id}]
+										</div>
+										<div>{step.message}</div>
+									</div>
+								))
+							)}
 						</Accordion>
 					)}
 				</div>

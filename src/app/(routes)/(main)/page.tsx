@@ -41,16 +41,19 @@ function LeftWorkspaceSidebar() {
 
 function RightSidebar({
 	onWidthChange,
-	selectedAgent,
+	selectedAgents,
+	edges,
 }: {
 	onWidthChange?: (width: number) => void;
-	selectedAgent: any;
+	selectedAgents: { [id: string]: any };
+	edges: Edge[];
 }) {
 	return (
 		<>
 			<RightWorkspaceSidebar
 				onWidthChange={onWidthChange}
-				selectedAgent={selectedAgent}
+				selectedAgents={selectedAgents}
+				edges={edges}
 			/>
 		</>
 	);
@@ -58,50 +61,58 @@ function RightSidebar({
 
 function FlowCanvas({
 	rightSidebarWidth,
-	selectedAgent,
-	setSelectedAgent,
+	selectedAgents,
+	setSelectedAgents,
+	edges,
+	setEdges,
 }: {
 	rightSidebarWidth: number;
-	selectedAgent: any;
-	setSelectedAgent: (agent: any) => void;
+	selectedAgents: { [id: string]: any };
+	setSelectedAgents: (agents: { [id: string]: any }) => void;
+	edges: Edge[];
+	setEdges: (edges: Edge[]) => void;
 }) {
 	const { screenToFlowPosition, setViewport } = useReactFlow();
 	const { open } = useSidebar();
 	const [nodes, setNodes] = useState<Node[]>([]);
 
-	const [edges, setEdges] = useState<Edge[]>([]);
-
 	// Function to update selected agent's subnet data when tool nodes are modified
 	const updateSelectedAgentSubnet = useCallback(
 		(nodeId: string, newData: any) => {
-			if (!selectedAgent) return;
+			// Find which agent this node belongs to
+			const node = nodes.find((n) => n.id === nodeId);
+			if (!node || !node.parentId) return;
 
-			setSelectedAgent((prevAgent: any) => {
-				if (!prevAgent) return prevAgent;
+			const agentId = node.parentId;
+			const agent = selectedAgents[agentId];
+			if (!agent) return;
 
-				// Find the subnet in the agent's subnet list that corresponds to this node
-				const updatedSubnets = prevAgent.subnets.map((subnet: any) => {
-					// Match by unique_id, itemID, or subnet_name
-					if (
-						subnet.unique_id === newData.unique_id ||
-						subnet.itemID === newData.itemID ||
-						subnet.subnet_name === newData.subnet_name
-					) {
-						return {
-							...subnet,
-							...newData,
-						};
-					}
-					return subnet;
-				});
+			setSelectedAgents((prevAgents: { [id: string]: any }) => {
+				const updatedAgent = {
+					...agent,
+					subnets: agent.subnets.map((subnet: any) => {
+						// Match by unique_id, itemID, or subnet_name
+						if (
+							subnet.unique_id === newData.unique_id ||
+							subnet.itemID === newData.itemID ||
+							subnet.subnet_name === newData.subnet_name
+						) {
+							return {
+								...subnet,
+								...newData,
+							};
+						}
+						return subnet;
+					}),
+				};
 
 				return {
-					...prevAgent,
-					subnets: updatedSubnets,
+					...prevAgents,
+					[agentId]: updatedAgent,
 				};
 			});
 		},
-		[selectedAgent]
+		[selectedAgents, nodes]
 	);
 
 	const deleteNode = useCallback(
@@ -119,19 +130,23 @@ function FlowCanvas({
 					const childNodeIds = childNodes.map((child) => child.id);
 
 					// Remove edges connected to child nodes
-					setEdges((currentEdges) => {
-						return currentEdges.filter(
-							(edge) =>
+					setEdges(
+						edges.filter(
+							(edge: Edge) =>
 								!childNodeIds.includes(edge.source) &&
 								!childNodeIds.includes(edge.target) &&
 								edge.source !== nodeId &&
 								edge.target !== nodeId
-						);
-					});
+						)
+					);
 
 					// Clear selected agent if the deleted container was the selected agent
-					if (selectedAgent && selectedAgent.id === nodeToDelete.id) {
-						setSelectedAgent(null);
+					if (selectedAgents[nodeToDelete.id]) {
+						setSelectedAgents((prev: { [id: string]: any }) => {
+							const { [nodeToDelete.id]: removed, ...rest } =
+								prev;
+							return rest;
+						});
 					}
 
 					// Remove container and all child nodes
@@ -144,45 +159,43 @@ function FlowCanvas({
 				const parentId = nodeToDelete?.parentId;
 
 				// Handle regular node deletion
-				setEdges((currentEdges) => {
-					// Find incoming and outgoing edges
-					const incomingEdges = currentEdges.filter(
-						(edge) => edge.target === nodeId
-					);
-					const outgoingEdges = currentEdges.filter(
-						(edge) => edge.source === nodeId
-					);
+				// Find incoming and outgoing edges
+				const incomingEdges = edges.filter(
+					(edge: Edge) => edge.target === nodeId
+				);
+				const outgoingEdges = edges.filter(
+					(edge: Edge) => edge.source === nodeId
+				);
 
-					// Create new connecting edges (reconnect the flow)
-					const newEdges = [];
-					for (const incomingEdge of incomingEdges) {
-						for (const outgoingEdge of outgoingEdges) {
-							// Avoid self-loops
-							if (incomingEdge.source !== outgoingEdge.target) {
-								newEdges.push({
-									id: `reconnect-${incomingEdge.source}-${
-										outgoingEdge.target
-									}-${Date.now()}-${Math.random()
-										.toString(36)
-										.substr(2, 9)}`,
-									source: incomingEdge.source,
-									target: outgoingEdge.target,
-									type: "custom",
-									data: {},
-								});
-							}
+				// Create new connecting edges (reconnect the flow)
+				const newEdges: Edge[] = [];
+				for (const incomingEdge of incomingEdges) {
+					for (const outgoingEdge of outgoingEdges) {
+						// Avoid self-loops
+						if (incomingEdge.source !== outgoingEdge.target) {
+							newEdges.push({
+								id: `reconnect-${incomingEdge.source}-${
+									outgoingEdge.target
+								}-${Date.now()}-${Math.random()
+									.toString(36)
+									.substr(2, 9)}`,
+								source: incomingEdge.source,
+								target: outgoingEdge.target,
+								type: "custom",
+								data: {},
+							});
 						}
 					}
+				}
 
-					// Remove edges connected to the deleted node
-					const filteredEdges = currentEdges.filter(
-						(edge) =>
-							edge.source !== nodeId && edge.target !== nodeId
-					);
+				// Remove edges connected to the deleted node
+				const filteredEdges = edges.filter(
+					(edge: Edge) =>
+						edge.source !== nodeId && edge.target !== nodeId
+				);
 
-					// Return filtered edges plus new reconnecting edges
-					return [...filteredEdges, ...newEdges];
-				});
+				// Set filtered edges plus new reconnecting edges
+				setEdges([...filteredEdges, ...newEdges]);
 
 				// Remove the node and update parent container if needed
 				const updatedNodes = currentNodes.filter(
@@ -211,7 +224,7 @@ function FlowCanvas({
 				return updatedNodes;
 			});
 		},
-		[selectedAgent, setSelectedAgent]
+		[selectedAgents, setSelectedAgents]
 	);
 
 	const onNodesChange: OnNodesChange = useCallback(
@@ -220,18 +233,21 @@ function FlowCanvas({
 	);
 
 	const onEdgesChange: OnEdgesChange = useCallback(
-		(changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-		[]
+		(changes) => setEdges(applyEdgeChanges(changes, edges)),
+		[edges, setEdges]
 	);
 
-	const onConnect: OnConnect = useCallback((connection) => {
-		const newEdge = {
-			...connection,
-			type: "custom",
-			data: {},
-		};
-		setEdges((eds) => addEdge(newEdge, eds));
-	}, []);
+	const onConnect: OnConnect = useCallback(
+		(connection) => {
+			const newEdge = {
+				...connection,
+				type: "custom",
+				data: {},
+			};
+			setEdges(addEdge(newEdge, edges));
+		},
+		[edges, setEdges]
+	);
 
 	const onDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
 		e.preventDefault();
@@ -336,16 +352,6 @@ function FlowCanvas({
 					}
 					return;
 				} else if (droppedData.name && droppedData.id) {
-					const existingAgentContainer = nodes.find(
-						(node) => node.type === "agentContainer"
-					);
-					if (existingAgentContainer) {
-						toast.error(
-							"Remove existing agent first - only one allowed per flow."
-						);
-						return;
-					}
-
 					try {
 						const detailedResponse = await getAgentById(
 							droppedData.id
@@ -380,11 +386,16 @@ function FlowCanvas({
 							setNodes((prev) => [...prev, containerNode]);
 
 							// Set this agent as the selected agent for testing
-							setSelectedAgent({
-								id: containerId,
-								agentName: agentDetail.name,
-								subnets: agentDetail.subnet_list, // Keep the full subnet data
-							});
+							setSelectedAgents(
+								(prev: { [id: string]: any }) => ({
+									...prev,
+									[containerId]: {
+										id: containerId,
+										agentName: agentDetail.name,
+										subnets: agentDetail.subnet_list, // Keep the full subnet data
+									},
+								})
+							);
 
 							// If agent has subnet_list, create child nodes inside the container
 							if (agentDetail.subnet_list && agentDetail.layout) {
@@ -534,7 +545,7 @@ function FlowCanvas({
 
 								// Add child nodes and edges
 								setNodes((prev) => [...prev, ...childNodes]);
-								setEdges((prev) => [...prev, ...childEdges]);
+								setEdges([...edges, ...childEdges]);
 
 								// Update container with child node count and trigger auto-resize
 								setTimeout(() => {
@@ -785,11 +796,14 @@ function FlowCanvas({
 
 export default function Home() {
 	const [rightSidebarWidth, setRightSidebarWidth] = useState(0);
-	const [selectedAgent, setSelectedAgent] = useState<{
-		id: string;
-		agentName: string;
-		subnets: any[];
-	} | null>(null);
+	const [selectedAgents, setSelectedAgents] = useState<{
+		[id: string]: {
+			id: string;
+			agentName: string;
+			subnets: any[];
+		};
+	}>({});
+	const [edges, setEdges] = useState<Edge[]>([]);
 
 	const handleRightSidebarWidthChange = useCallback((width: number) => {
 		setRightSidebarWidth(width);
@@ -804,15 +818,18 @@ export default function Home() {
 			<ReactFlowProvider>
 				<FlowCanvas
 					rightSidebarWidth={rightSidebarWidth}
-					selectedAgent={selectedAgent}
-					setSelectedAgent={setSelectedAgent}
+					selectedAgents={selectedAgents}
+					setSelectedAgents={setSelectedAgents}
+					edges={edges}
+					setEdges={setEdges}
 				/>
 			</ReactFlowProvider>
 
 			<SidebarProvider className="h-full w-fit">
 				<RightSidebar
 					onWidthChange={handleRightSidebarWidthChange}
-					selectedAgent={selectedAgent}
+					selectedAgents={selectedAgents}
+					edges={edges}
 				/>
 			</SidebarProvider>
 		</div>
