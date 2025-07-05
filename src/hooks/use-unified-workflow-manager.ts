@@ -18,6 +18,7 @@ export interface UnifiedWorkflowResponse {
 	timestamp: string;
 	startTime?: string;
 	endTime?: string;
+	extractedImages?: string[];
 }
 
 export function useUnifiedWorkflowManager() {
@@ -35,14 +36,13 @@ export function useUnifiedWorkflowManager() {
 	const updateResponse = useCallback(
 		(rawResponse: any) => {
 			const normalized = normalizeWorkflowResponse(rawResponse);
-			if (!normalized) return null; // Skip null/unknown responses
+			if (!normalized) return null;
 			const responseId = normalized.itemID || normalized.id;
 
 			setResponses((prev) => {
 				const newMap = new Map(prev);
 				const existing = newMap.get(responseId);
 
-				// Track order of responses
 				if (
 					!existing &&
 					!responseOrderRef.current.includes(responseId)
@@ -71,13 +71,13 @@ export function useUnifiedWorkflowManager() {
 						normalized.status === "error"
 							? new Date().toISOString()
 							: existing?.endTime,
+					extractedImages: normalized.extractedImages,
 				};
 
 				newMap.set(responseId, unified);
 				return newMap;
 			});
 
-			// Update current step
 			if (normalized.status === "processing") {
 				setCurrentStep(responseId);
 			} else if (
@@ -87,7 +87,6 @@ export function useUnifiedWorkflowManager() {
 				setCurrentStep(null);
 			}
 
-			// Update overall status
 			if (
 				normalized.status === "processing" &&
 				overallStatus !== "running"

@@ -17,6 +17,7 @@ interface TestAccordionItemProps {
 	responseData?: string;
 	fileData?: string | Blob;
 	contentType?: string;
+	extractedImages?: string[];
 }
 
 export default function TestAccordionItem({
@@ -29,6 +30,7 @@ export default function TestAccordionItem({
 	responseData = "lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.",
 	fileData,
 	contentType,
+	extractedImages = [],
 }: TestAccordionItemProps) {
 	const handleDownload = () => {
 		if (!fileData) {
@@ -136,44 +138,121 @@ export default function TestAccordionItem({
 						readOnly
 					/>
 
-					<div className="space-y-2">
-						<h4 className="text-sm font-medium text-foreground">
-							Generated Files
-						</h4>
-						<div className="flex items-center gap-2 justify-between">
-							<div className="flex items-center gap-2 p-2 bg-muted/30 rounded-md">
-								{hasImage ? (
-									<Image className="h-4 w-4 text-green-500" />
-								) : (
-									<FileText className="h-4 w-4 text-blue-500" />
+					{/* Show Generated Files section if there are actual files, extracted images, or image references in content */}
+					{(fileData ||
+						extractedImages.length > 0 ||
+						response.includes("Image ")) && (
+						<div className="space-y-2">
+							<h4 className="text-sm font-medium text-foreground">
+								Generated Files
+							</h4>
+
+							{/* Show actual file data if available */}
+							{fileData && (
+								<div className="flex items-center gap-2 justify-between">
+									<div className="flex items-center gap-2 p-2 bg-muted/30 rounded-md">
+										{hasImage ? (
+											<Image className="h-4 w-4 text-green-500" />
+										) : (
+											<FileText className="h-4 w-4 text-blue-500" />
+										)}
+										<span className="text-sm">
+											{fileName}
+										</span>
+									</div>
+									<Button
+										variant="ghost"
+										size="icon"
+										onClick={handleDownload}
+										title="Download file"
+									>
+										<Download className="h-4 w-4" />
+									</Button>
+								</div>
+							)}
+
+							{/* Show extracted images */}
+							{extractedImages.length > 0 && (
+								<div className="space-y-2">
+									<h5 className="text-xs font-medium text-muted-foreground">
+										Images found in response:
+									</h5>
+									<div className="grid grid-cols-2 gap-2">
+										{extractedImages.map(
+											(imageUrl, index) => (
+												<div
+													key={index}
+													className="relative group"
+												>
+													<img
+														src={imageUrl}
+														alt={`Extracted image ${
+															index + 1
+														}`}
+														className="w-full h-32 object-cover rounded border border-gray-200 dark:border-gray-700"
+														onError={(e) => {
+															// Hide image if it fails to load
+															e.currentTarget.style.display =
+																"none";
+														}}
+													/>
+													<div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center">
+														<a
+															href={imageUrl}
+															target="_blank"
+															rel="noopener noreferrer"
+															className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white text-black px-2 py-1 rounded text-xs"
+														>
+															Open
+														</a>
+													</div>
+												</div>
+											)
+										)}
+									</div>
+								</div>
+							)}
+
+							{/* Show message when images are referenced but not available */}
+							{extractedImages.length === 0 &&
+								response.includes("Image ") && (
+									<div className="space-y-2">
+										<h5 className="text-xs font-medium text-muted-foreground">
+											Image References:
+										</h5>
+										<div className="p-3 bg-muted/30 rounded-md">
+											<div className="flex items-center gap-2">
+												<Image className="h-4 w-4 text-gray-400" />
+												<span className="text-sm text-muted-foreground">
+													Images are referenced in the
+													response content but URLs
+													are not available.
+												</span>
+											</div>
+										</div>
+									</div>
 								)}
-								<span className="text-sm">{fileName}</span>
-							</div>
-							<Button
-								variant="ghost"
-								size="icon"
-								onClick={handleDownload}
-								title="Download file"
-							>
-								<Download className="h-4 w-4" />
-							</Button>
-						</div>
-						<div className="px-2">
-							{hasImage && fileData && (
-								<div className="w-1/2 rounded border-gray overflow-hidden">
-									<img
-										src={
-											typeof fileData === "string"
-												? fileData
-												: URL.createObjectURL(fileData)
-										}
-										alt="Generated file preview"
-										className="w-full h-full object-cover"
-									/>
+
+							{/* Show file preview if available */}
+							{fileData && hasImage && (
+								<div className="px-2">
+									<div className="w-1/2 rounded border-gray overflow-hidden">
+										<img
+											src={
+												typeof fileData === "string"
+													? fileData
+													: URL.createObjectURL(
+															fileData
+													  )
+											}
+											alt="Generated file preview"
+											className="w-full h-full object-cover"
+										/>
+									</div>
 								</div>
 							)}
 						</div>
-					</div>
+					)}
 
 					<ExpandableTextArea
 						title="Response Data"

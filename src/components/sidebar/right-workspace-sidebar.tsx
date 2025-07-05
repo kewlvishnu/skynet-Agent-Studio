@@ -14,7 +14,6 @@ import {
 	TabNavigation,
 	LogsPanel,
 } from "./test-flow-components";
-import { UpdatedResponsePanel } from "./test-flow-components/updated-response-panel";
 import { MoveHorizontal, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { AgentTestStatus, Subnet } from "@/types/workflow";
 import { AppCryptoContext } from "@/providers/AppCryptoProvider";
@@ -47,10 +46,12 @@ import {
 	VALIDATION,
 	UI_CONFIG,
 } from "@/config/constants";
+import { ResponsePanel } from "./test-flow-components/response-panel";
+import {
+	clearStoredOutputs,
+	getStoredOutput,
+} from "@/utils/normalizeWorkflowResponse";
 
-// Unified workflow management system replaces the old response tracking
-
-// Helper function to safely format image sources
 const getImageSrc = (data: string, contentType: string): string => {
 	if (data.startsWith("data:")) {
 		return data;
@@ -89,7 +90,6 @@ export default function RightWorkspaceSidebar({
 		progress: 0,
 		logs: [],
 	});
-	// Replace old response management with unified workflow manager
 	const workflowManager = useUnifiedWorkflowManager();
 	const socketRef = useRef<Socket | null>(null);
 	const {
@@ -165,7 +165,6 @@ export default function RightWorkspaceSidebar({
 		onWidthChange?.(open ? sidebarWidth : 0);
 	}, [open, sidebarWidth, onWidthChange]);
 
-	// Control sidebar visibility based on agent selection
 	useEffect(() => {
 		const hasAgents =
 			selectedAgents && Object.keys(selectedAgents).length > 0;
@@ -262,16 +261,13 @@ export default function RightWorkspaceSidebar({
 		}
 	};
 
-	// Function to analyze connections between agents
 	const analyzeAgentConnections = (edges: any[], agents: any) => {
 		const connections: { from: string; to: string }[] = [];
 
 		edges.forEach((edge) => {
-			// Find which agents the source and target nodes belong to
 			let sourceAgent: string | undefined;
 			let targetAgent: string | undefined;
 
-			// Check if the edge connects agent containers directly
 			if (
 				edge.source?.includes("agent-container") &&
 				edge.target?.includes("agent-container")
@@ -279,11 +275,9 @@ export default function RightWorkspaceSidebar({
 				sourceAgent = edge.source;
 				targetAgent = edge.target;
 			} else {
-				// Check for connections between child nodes of different agents
 				Object.keys(agents).forEach((agentId) => {
 					const agent = agents[agentId];
 
-					// Check if source belongs to this agent
 					if (
 						agent.subnets.some((subnet: any) => {
 							const nodeId = `tool-${subnet.itemID}-`;
@@ -296,7 +290,6 @@ export default function RightWorkspaceSidebar({
 						sourceAgent = agentId;
 					}
 
-					// Check if target belongs to this agent
 					if (
 						agent.subnets.some((subnet: any) => {
 							const nodeId = `tool-${subnet.itemID}-`;
@@ -311,7 +304,6 @@ export default function RightWorkspaceSidebar({
 				});
 			}
 
-			// If both nodes belong to different agents, we have an inter-agent connection
 			if (sourceAgent && targetAgent && sourceAgent !== targetAgent) {
 				connections.push({ from: sourceAgent, to: targetAgent });
 				console.log(
@@ -323,18 +315,15 @@ export default function RightWorkspaceSidebar({
 		return connections;
 	};
 
-	// Function to reorder subnets based on agent connections
 	const reorderSubnetsByConnections = (
 		subnets: any[],
 		connections: any[],
 		agentMapping: any
 	) => {
 		if (connections.length === 0) {
-			// No connections, return as is
 			return subnets;
 		}
 
-		// Create a dependency graph
 		const agentDependencies: { [agentId: string]: string[] } = {};
 		Object.keys(selectedAgents || {}).forEach((agentId) => {
 			agentDependencies[agentId] = [];
@@ -347,7 +336,6 @@ export default function RightWorkspaceSidebar({
 			agentDependencies[conn.to].push(conn.from);
 		});
 
-		// Topological sort to determine agent order
 		const visited = new Set<string>();
 		const temp = new Set<string>();
 		const agentOrder: string[] = [];
@@ -375,19 +363,36 @@ export default function RightWorkspaceSidebar({
 			}
 		});
 
-		// Reorder subnets based on agent order
 		const orderedSubnets: any[] = [];
+		console.log("Agent order from topological sort:", agentOrder);
 		agentOrder.forEach((agentId) => {
 			const agentSubnets = subnets.filter(
 				(subnet) => subnet.agentId === agentId
 			);
+			console.log(
+				`Adding subnets for agent ${agentId}:`,
+				agentSubnets.map((s) => s.subnetName)
+			);
 			orderedSubnets.push(...agentSubnets);
 		});
 
-		// Add any remaining subnets that don't have agentId
 		const remainingSubnets = subnets.filter((subnet) => !subnet.agentId);
+		if (remainingSubnets.length > 0) {
+			console.log(
+				"Adding remaining subnets without agentId:",
+				remainingSubnets.map((s) => s.subnetName)
+			);
+		}
 		orderedSubnets.push(...remainingSubnets);
 
+		console.log(
+			"Final ordered subnets:",
+			orderedSubnets.map((s) => ({
+				agentId: s.agentId,
+				subnetName: s.subnetName,
+				itemID: s.itemID,
+			}))
+		);
 		return orderedSubnets;
 	};
 
@@ -410,19 +415,16 @@ export default function RightWorkspaceSidebar({
 		setPrompt(prompt);
 		setIsSubmitted(true);
 
-		// Disconnect any existing socket connection
 		if (socketRef.current && socketRef.current.connected) {
 			socketRef.current.disconnect();
 			socketRef.current = null;
 		}
 
-		// Initialize execution status and reset workflow manager
 		resetExecutionStatus();
 		workflowManager.reset();
 
 		let nftId: string | null = null;
 		if (selectedNft) {
-			// Verify the selected NFT is still valid
 			try {
 				const nftOwner =
 					await skyBrowser.contractService.AgentNFT.ownerOf(
@@ -448,7 +450,6 @@ export default function RightWorkspaceSidebar({
 			}
 		}
 
-		// If no valid NFT is selected, try to get one
 		if (!nftId) {
 			console.log("No valid NFT selected, attempting to get one...");
 			const _selectedNft: string | false = await getNftId(
@@ -504,14 +505,12 @@ export default function RightWorkspaceSidebar({
 				messageLength: authData.message?.length,
 			});
 
-			// Build combined workflow from all agents with connection analysis
 			const allSubnets: any[] = [];
 			let itemIdOffset = 0;
 			const agentSubnetMapping: {
 				[agentId: string]: { [originalItemId: number]: number };
 			} = {};
 
-			// First pass: collect all subnets and create mappings
 			Object.entries(selectedAgents).forEach(([agentId, agent]) => {
 				console.log(
 					`Processing agent: ${agent.agentName} with ${agent.subnets.length} subnets`
@@ -522,78 +521,146 @@ export default function RightWorkspaceSidebar({
 					const originalItemId = subnet.itemID || 0;
 					const adjustedItemId = originalItemId + itemIdOffset;
 
-					// Store mapping for later use
 					agentSubnetMapping[agentId][originalItemId] =
 						adjustedItemId;
 
-					// Adjust itemID to avoid conflicts between agents
 					const adjustedSubnet = {
 						...subnet,
 						itemID: adjustedItemId,
 						originalItemID: originalItemId,
-						agentId: agentId, // Track which agent this subnet belongs to
+						agentId: agentId,
 					};
 					allSubnets.push(adjustedSubnet);
 				});
 
-				// Increment offset for next agent
 				const maxItemId = Math.max(
 					...agent.subnets.map((s: any) => s.itemID || 0)
 				);
-				itemIdOffset += maxItemId + 100; // Add buffer
+				itemIdOffset += maxItemId + 100;
 			});
 
-			// Analyze agent connections to determine workflow order
 			const agentConnections = analyzeAgentConnections(
 				edges || [],
 				selectedAgents
 			);
 			console.log("Agent connections:", agentConnections);
+			console.log("Edges:", edges);
+			console.log("Selected agents:", Object.keys(selectedAgents || {}));
 
-			// Reorder subnets based on agent connections
 			const orderedSubnets = reorderSubnetsByConnections(
 				allSubnets,
 				agentConnections,
 				agentSubnetMapping
 			);
 
-			// --- BEGIN: Chain agents by setting inputItemID of first subnet of next agent to last subnet of previous agent ---
-			// Get the order of agent IDs as they appear in orderedSubnets
-			const orderedAgentIds: string[] = [];
-			orderedSubnets.forEach((subnet: any) => {
-				if (
-					subnet.agentId &&
-					!orderedAgentIds.includes(subnet.agentId)
-				) {
-					orderedAgentIds.push(subnet.agentId);
+			const agentIds = Object.keys(selectedAgents);
+			console.log("Agent IDs from selectedAgents:", agentIds);
+
+			const itemIdMappings = new Map();
+
+			Object.entries(selectedAgents).forEach(([agentId, agent]) => {
+				const agentSubnets = orderedSubnets.filter(
+					(s) => s.agentId === agentId
+				);
+				agentSubnets.forEach((subnet, index) => {
+					const originalItemId =
+						subnet.originalItemID || subnet.itemID;
+					itemIdMappings.set(
+						`${agentId}-${originalItemId}`,
+						subnet.itemID
+					);
+				});
+			});
+
+			console.log("ItemID mappings:", itemIdMappings);
+
+			orderedSubnets.forEach((subnet) => {
+				if (subnet.inputItemID && subnet.inputItemID.length > 0) {
+					const originalInputIds = [...subnet.inputItemID];
+
+					subnet.inputItemID = originalInputIds.map((inputId) => {
+						const sameAgentSubnet = orderedSubnets.find(
+							(s) =>
+								s.agentId === subnet.agentId &&
+								(s.originalItemID === inputId ||
+									s.itemID === inputId)
+						);
+
+						if (sameAgentSubnet) {
+							return sameAgentSubnet.itemID;
+						}
+
+						return inputId;
+					});
+
+					console.log(
+						`Remapped ${subnet.subnetName} inputItemID: ${originalInputIds} → ${subnet.inputItemID}`
+					);
 				}
 			});
-			// For each agent after the first, set the inputItemID of its first subnet to the itemID of the last subnet of the previous agent
-			for (let i = 1; i < orderedAgentIds.length; i++) {
-				const prevAgentId = orderedAgentIds[i - 1];
-				const currAgentId = orderedAgentIds[i];
+
+			for (let i = 1; i < agentIds.length; i++) {
+				const prevAgentId = agentIds[i - 1];
+				const currAgentId = agentIds[i];
+
 				const prevAgentSubnets = orderedSubnets.filter(
 					(s) => s.agentId === prevAgentId
 				);
 				const currAgentSubnets = orderedSubnets.filter(
 					(s) => s.agentId === currAgentId
 				);
+
 				const lastSubnetOfPrevAgent =
 					prevAgentSubnets[prevAgentSubnets.length - 1];
 				const firstSubnetOfCurrAgent = currAgentSubnets[0];
+
+				console.log(`Chaining agents: ${prevAgentId} → ${currAgentId}`);
+				console.log(
+					`Last subnet of prev agent: ${lastSubnetOfPrevAgent?.subnetName} (itemID: ${lastSubnetOfPrevAgent?.itemID})`
+				);
+				console.log(
+					`First subnet of curr agent: ${firstSubnetOfCurrAgent?.subnetName} (itemID: ${firstSubnetOfCurrAgent?.itemID})`
+				);
+
 				if (lastSubnetOfPrevAgent && firstSubnetOfCurrAgent) {
-					// If inputItemID is not already set, set it
-					if (
-						!firstSubnetOfCurrAgent.inputItemID ||
-						firstSubnetOfCurrAgent.inputItemID.length === 0
-					) {
+					const existingInputs =
+						firstSubnetOfCurrAgent.inputItemID || [];
+
+					if (existingInputs.length === 0) {
 						firstSubnetOfCurrAgent.inputItemID = [
 							lastSubnetOfPrevAgent.itemID,
 						];
+						console.log(
+							`✓ Connected: ${lastSubnetOfPrevAgent.subnetName} (${lastSubnetOfPrevAgent.itemID}) → ${firstSubnetOfCurrAgent.subnetName} (${firstSubnetOfCurrAgent.itemID})`
+						);
+					} else {
+						console.log(
+							`ℹ First subnet ${
+								firstSubnetOfCurrAgent.subnetName
+							} already has dependencies: [${existingInputs.join(
+								", "
+							)}] - keeping as is`
+						);
 					}
 				}
 			}
-			// --- END: Chain agents logic ---
+
+			console.log("Final workflow after correct agent chaining:");
+			agentIds.forEach((agentId, index) => {
+				const agentSubnets = orderedSubnets.filter(
+					(s) => s.agentId === agentId
+				);
+				console.log(`Agent ${index + 1} (${agentId}):`);
+				agentSubnets.forEach((subnet) => {
+					console.log(
+						`  - ${subnet.subnetName} (itemID: ${
+							subnet.itemID
+						}): inputItemID = [${
+							subnet.inputItemID?.join(", ") || ""
+						}]`
+					);
+				});
+			});
 
 			console.log(
 				"Combined subnets from all agents (ordered):",
@@ -611,7 +678,6 @@ export default function RightWorkspaceSidebar({
 					console.warn(`Subnet missing subnetName:`, cleanedSubnet);
 				}
 
-				// Validate subnetURL field
 				if (cleanedSubnet.subnetURL) {
 					if (typeof cleanedSubnet.subnetURL === "string") {
 						let url = cleanedSubnet.subnetURL.trim();
@@ -709,7 +775,6 @@ export default function RightWorkspaceSidebar({
 
 			const workflow = validatedSubnets.map(
 				(subnet: any, index: number) => {
-					// Debug inputItemID processing
 					const originalInputIds = Array.isArray(subnet.inputItemID)
 						? subnet.inputItemID
 						: Array.isArray(subnet.input_item_id)
@@ -771,27 +836,34 @@ export default function RightWorkspaceSidebar({
 								? subnet.input_item_id
 								: [];
 
-							// Adjust inputItemID references to match the new itemIDs
+							console.log(
+								`Processing inputItemID for ${subnet.subnetName}:`,
+								originalInputIds
+							);
+
 							return originalInputIds.map((inputId: number) => {
-								// First, try to find the subnet with this original itemID across all agents
 								const correspondingSubnet = orderedSubnets.find(
 									(s: any) => s.originalItemID === inputId
 								);
 
 								if (correspondingSubnet) {
+									console.log(
+										`Mapped inputItemID ${inputId} -> ${correspondingSubnet.itemID} (by originalItemID)`
+									);
 									return correspondingSubnet.itemID;
 								}
 
-								// If not found by originalItemID, try to find by the current itemID
 								const subnetByCurrentId = orderedSubnets.find(
 									(s: any) => s.itemID === inputId
 								);
 
 								if (subnetByCurrentId) {
+									console.log(
+										`Mapped inputItemID ${inputId} -> ${subnetByCurrentId.itemID} (by current itemID)`
+									);
 									return subnetByCurrentId.itemID;
 								}
 
-								// If still not found, return the original inputId as fallback
 								console.warn(
 									`Could not map inputItemID ${inputId} for subnet ${subnet.subnetName} (itemID: ${subnet.itemID})`
 								);
@@ -827,6 +899,7 @@ export default function RightWorkspaceSidebar({
 						{
 							itemID: workflowItem.itemID,
 							inputItemID: workflowItem.inputItemID,
+							agentId: subnet.agentId,
 						}
 					);
 
@@ -838,7 +911,15 @@ export default function RightWorkspaceSidebar({
 				throw new Error(TEXT.ERRORS.WORKFLOW_EMPTY);
 			}
 
-			// Normalize the workflow to ensure sequential itemIDs
+			console.log(
+				"Workflow before normalization:",
+				workflow.map((w) => ({
+					subnetName: w.subnetName,
+					itemID: w.itemID,
+					inputItemID: w.inputItemID,
+				}))
+			);
+
 			const normalizedWorkflow = normalizeWorkflowItemIDs([...workflow]);
 
 			const payload = {
@@ -910,13 +991,13 @@ export default function RightWorkspaceSidebar({
 				}));
 			});
 
+			clearStoredOutputs();
+
 			socketRef.current.on(STATUS.SOCKET_EVENTS.STATUS, (data) => {
 				console.log("Received status update:", data);
 
-				// Update unified workflow manager
 				const normalizedResponse = workflowManager.updateResponse(data);
 
-				// Extract status info for logs
 				let statusData = data;
 				if (
 					Array.isArray(data) &&
@@ -948,7 +1029,39 @@ export default function RightWorkspaceSidebar({
 					`Status: ${statusValue} | Subnet: ${subnetName} | ItemID: ${itemID}`
 				);
 
-				// Update test status for logs and progress
+				if (statusValue === STATUS.STARTING && subnetInfo) {
+					const hasInputItemID =
+						subnetInfo.inputItemID &&
+						subnetInfo.inputItemID.length > 0;
+
+					if (hasInputItemID) {
+						const inputItemID = subnetInfo.inputItemID[0];
+						const previousOutput = getStoredOutput(inputItemID);
+
+						if (previousOutput) {
+							console.log(
+								`Chaining: Passing output from itemID ${inputItemID} to ${subnetName}`
+							);
+							console.log(
+								`Previous output (first 200 chars): ${previousOutput.substring(
+									0,
+									200
+								)}...`
+							);
+
+							socketRef.current?.emit("chain-data", {
+								targetItemID: itemID,
+								sourceItemID: inputItemID,
+								chainedData: previousOutput,
+							});
+						} else {
+							console.warn(
+								`No stored output found for inputItemID ${inputItemID}`
+							);
+						}
+					}
+				}
+
 				if (statusValue === STATUS.STARTING) {
 					updateExecutionStatus({
 						isRunning: true,
@@ -1066,11 +1179,9 @@ export default function RightWorkspaceSidebar({
 			socketRef.current.on(STATUS.SOCKET_EVENTS.ERROR, (error) => {
 				console.error("Socket error:", error);
 
-				// Update workflow manager with error
 				workflowManager.updateResponse(error);
 				workflowManager.markError();
 
-				// Stop execution on error
 				stopExecution();
 
 				let errorMessage: string = TEXT.AN_ERROR_OCCURRED;
@@ -1173,7 +1284,6 @@ export default function RightWorkspaceSidebar({
 		}
 	};
 
-	// Use helper functions for progress calculation and workflow item generation
 	const progress = calculateWorkflowProgress(
 		workflowManager.responses,
 		workflowManager.overallStatus
@@ -1266,9 +1376,7 @@ export default function RightWorkspaceSidebar({
 					) : (
 						<PromptInputSection
 							onRunTest={handleRunTest}
-							placeholder={TEXT.PLACEHOLDERS.TEST_AGENTS(
-								Object.keys(selectedAgents || {}).length
-							)}
+							placeholder={TEXT.PLACEHOLDERS.TEST_PROMPT}
 							buttonText={TEXT.BUTTONS.RUN_TEST}
 							isProcessing={testStatus.isRunning}
 						/>
@@ -1287,7 +1395,7 @@ export default function RightWorkspaceSidebar({
 										value="response"
 										className="h-full m-0"
 									>
-										<UpdatedResponsePanel
+										<ResponsePanel
 											status={
 												workflowManager.overallStatus
 											}

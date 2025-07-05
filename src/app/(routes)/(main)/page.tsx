@@ -117,44 +117,45 @@ function FlowCanvas({
 
 	const deleteNode = useCallback(
 		(nodeId: string) => {
-			setNodes((currentNodes) => {
-				const nodeToDelete = currentNodes.find(
-					(node) => node.id === nodeId
+			// Get current state
+			const currentNodes = nodes;
+			const nodeToDelete = currentNodes.find(
+				(node) => node.id === nodeId
+			);
+
+			// If it's a container node, also delete all child nodes
+			if (nodeToDelete?.type === "agentContainer") {
+				const childNodes = currentNodes.filter(
+					(node) => node.parentId === nodeId
+				);
+				const childNodeIds = childNodes.map((child) => child.id);
+
+				// Remove edges connected to child nodes
+				const updatedEdges = edges.filter(
+					(edge: Edge) =>
+						!childNodeIds.includes(edge.source) &&
+						!childNodeIds.includes(edge.target) &&
+						edge.source !== nodeId &&
+						edge.target !== nodeId
 				);
 
-				// If it's a container node, also delete all child nodes
-				if (nodeToDelete?.type === "agentContainer") {
-					const childNodes = currentNodes.filter(
-						(node) => node.parentId === nodeId
-					);
-					const childNodeIds = childNodes.map((child) => child.id);
-
-					// Remove edges connected to child nodes
-					setEdges(
-						edges.filter(
-							(edge: Edge) =>
-								!childNodeIds.includes(edge.source) &&
-								!childNodeIds.includes(edge.target) &&
-								edge.source !== nodeId &&
-								edge.target !== nodeId
-						)
-					);
-
-					// Clear selected agent if the deleted container was the selected agent
-					if (selectedAgents[nodeToDelete.id]) {
-						setSelectedAgents((prev: { [id: string]: any }) => {
-							const { [nodeToDelete.id]: removed, ...rest } =
-								prev;
-							return rest;
-						});
-					}
-
-					// Remove container and all child nodes
-					return currentNodes.filter(
-						(node) => node.id !== nodeId && node.parentId !== nodeId
-					);
+				// Clear selected agent if the deleted container was the selected agent
+				if (selectedAgents[nodeToDelete.id]) {
+					setSelectedAgents((prev: { [id: string]: any }) => {
+						const { [nodeToDelete.id]: removed, ...rest } = prev;
+						return rest;
+					});
 				}
 
+				// Remove container and all child nodes
+				const updatedNodes = currentNodes.filter(
+					(node) => node.id !== nodeId && node.parentId !== nodeId
+				);
+
+				// Update both nodes and edges
+				setNodes(updatedNodes);
+				setEdges(updatedEdges);
+			} else {
 				// Check if this is a child node (has a parent)
 				const parentId = nodeToDelete?.parentId;
 
@@ -194,9 +195,6 @@ function FlowCanvas({
 						edge.source !== nodeId && edge.target !== nodeId
 				);
 
-				// Set filtered edges plus new reconnecting edges
-				setEdges([...filteredEdges, ...newEdges]);
-
 				// Remove the node and update parent container if needed
 				const updatedNodes = currentNodes.filter(
 					(node) => node.id !== nodeId
@@ -207,7 +205,7 @@ function FlowCanvas({
 					const remainingChildNodes = updatedNodes.filter(
 						(node) => node.parentId === parentId
 					);
-					return updatedNodes.map((node) =>
+					const finalNodes = updatedNodes.map((node) =>
 						node.id === parentId
 							? {
 									...node,
@@ -219,12 +217,16 @@ function FlowCanvas({
 							  }
 							: node
 					);
+					setNodes(finalNodes);
+				} else {
+					setNodes(updatedNodes);
 				}
 
-				return updatedNodes;
-			});
+				// Set filtered edges plus new reconnecting edges
+				setEdges([...filteredEdges, ...newEdges]);
+			}
 		},
-		[selectedAgents, setSelectedAgents]
+		[selectedAgents, setSelectedAgents, nodes, edges]
 	);
 
 	const onNodesChange: OnNodesChange = useCallback(

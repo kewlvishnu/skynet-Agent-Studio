@@ -156,8 +156,7 @@ export const TEXT = {
 
 	// Placeholder Text
 	PLACEHOLDERS: {
-		TEST_AGENTS: (count: number) =>
-			`Test ${count} agent${count > 1 ? "s" : ""}...`,
+		TEST_PROMPT: "Enter your prompt here...",
 		DRAG_AGENT:
 			"Drag an agent from the left sidebar to the canvas to start testing",
 	} as const,

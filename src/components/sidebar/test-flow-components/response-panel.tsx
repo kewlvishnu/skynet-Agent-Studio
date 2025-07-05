@@ -4,185 +4,71 @@ import TestProgressIndicator from "./test-progress-indicator";
 import TestAccordionItem from "./test-accordion-item";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorIcon } from "react-hot-toast";
-import { useState, useEffect } from "react";
-import {
-	normalizeWorkflowResponse,
-	WorkflowStep,
-} from "@/utils/normalizeWorkflowResponse";
-
-export interface TestResult {
-	id: number;
-	testId: string;
-	subnetName?: string;
-	response: string;
-	hasImage?: boolean;
-	fileName?: string;
-	responseData?: string;
-	fileData?: string | Blob;
-	contentType?: string;
-}
-
-interface SubnetResponseData {
-	itemID: string;
-	subnetName: string;
-	status: string;
-	responseMessage?: string;
-	responseData?: Record<string, unknown>;
-	files?: { name: string; data: string; type: string }[];
-	fileData?: string;
-	contentType?: string;
-}
-
-interface WorkflowItem {
-	id: string;
-	itemID: string;
-	subnetName: string;
-}
+import { UnifiedWorkflowResponse } from "@/hooks/use-unified-workflow-manager";
 
 interface ResponsePanelProps {
 	status: string;
 	progress: number;
-	currentStep?: string;
-	testResults: TestResult[];
+	currentStep?: string | number;
+	responses: UnifiedWorkflowResponse[];
 	isLoading?: boolean;
-	subnetResponses?: SubnetResponseData[];
-	workflow?: WorkflowItem[];
-	rawResponses?: any[];
+	workflow?: { id: string; itemID: string | number; subnetName: string }[];
 }
 
-export default function ResponsePanel({
+export function ResponsePanel({
 	status,
 	progress,
 	currentStep,
-	testResults,
+	responses,
 	isLoading = false,
-	subnetResponses = [],
 	workflow = [],
-	rawResponses,
 }: ResponsePanelProps) {
-	const subnetStatusMap = new Map(
-		subnetResponses.map((response) => [response.itemID, response.status])
-	);
-
-	const completedTestResultsMap = new Map(
-		testResults.map((result) => [result.testId, result])
-	);
-
-	const isSubnetRunning = (itemID: string) => {
-		const subnetStatus = subnetStatusMap.get(itemID);
-		return subnetStatus && subnetStatus !== "completed";
-	};
-
-	const isSubnetCompleted = (itemID: string) => {
-		const subnetStatus = subnetStatusMap.get(itemID);
-		return subnetStatus === "completed" || subnetStatus === "done";
-	};
-
-	const hasSubnetStarted = (itemID: string) => {
-		return subnetStatusMap.has(itemID);
-	};
-
-	// Function to render skeleton for running test
-	const renderTestSkeleton = (workflowItem: WorkflowItem, index: number) => (
-		<div
-			key={`skeleton-${workflowItem.itemID}`}
-			className="border border-gray rounded-lg overflow-hidden data-[state=open]:border"
-		>
-			<div className="flex items-center justify-between px-2 py-5 cursor-pointer">
-				<div className="flex items-center gap-2">
-					<Skeleton className="h-4 w-4 rounded-full" />
-					<Skeleton className="h-4 w-32" />
-					<Skeleton className="h-3 w-16" />
+	const renderResponseItem = (
+		response: UnifiedWorkflowResponse,
+		index: number
+	) => {
+		if (response.status === "processing") {
+			return (
+				<div
+					key={`skeleton-${response.id}`}
+					className="border border-gray rounded-lg overflow-hidden p-4"
+				>
+					<div className="flex items-center gap-2">
+						<Skeleton className="h-4 w-4 rounded-full" />
+						<Skeleton className="h-4 w-32" />
+						<Skeleton className="h-3 w-16" />
+					</div>
 				</div>
-				<Skeleton className="h-4 w-4" />
-			</div>
-		</div>
-	);
-
-	const generateDisplayTests = () => {
-		if (workflow.length === 0) {
-			return testResults.map((test) => {
-				if (isSubnetRunning(test.testId)) {
-					return renderTestSkeleton(
-						{
-							id: test.testId,
-							itemID: test.testId,
-							subnetName: test.subnetName || "Unknown",
-						},
-						test.id
-					);
-				}
-				return (
-					<TestAccordionItem
-						key={test.id}
-						testNumber={test.id}
-						testId={test.testId}
-						subnetName={test.subnetName}
-						response={test.response}
-						hasImage={test.hasImage}
-						fileName={test.fileName}
-						responseData={test.responseData}
-						fileData={test.fileData}
-						contentType={test.contentType}
-					/>
-				);
-			});
+			);
 		}
 
-		return workflow.map((workflowItem, index) => {
-			const itemID = workflowItem.itemID;
-			// Find the latest testResult for this workflow step
-			const matchingResults = testResults.filter(
-				(result) => result.testId === itemID
-			);
-			const latestResult =
-				matchingResults.length > 0
-					? matchingResults[matchingResults.length - 1]
-					: undefined;
-
-			if (isSubnetCompleted(itemID) && latestResult) {
-				return (
-					<TestAccordionItem
-						key={`completed-${itemID}`}
-						testNumber={index + 1}
-						testId={itemID}
-						subnetName={workflowItem.subnetName}
-						response={latestResult.response}
-						hasImage={latestResult.hasImage}
-						fileName={latestResult.fileName}
-						responseData={latestResult.responseData}
-						fileData={latestResult.fileData}
-						contentType={latestResult.contentType}
-					/>
-				);
-			}
-
-			return renderTestSkeleton(workflowItem, index + 1);
-		});
+		return (
+			<TestAccordionItem
+				key={`response-${response.id}`}
+				testNumber={index + 1}
+				testId={String(response.id)}
+				subnetName={response.subnetName}
+				response={response.message || "No response message"}
+				hasImage={Boolean(
+					response.files?.some((f) => f.type.startsWith("image/")) ||
+						(response.contentType &&
+							response.contentType.startsWith("image/"))
+				)}
+				fileName={response.files?.[0]?.name}
+				responseData={
+					response.responseData
+						? JSON.stringify(response.responseData, null, 2)
+						: undefined
+				}
+				fileData={response.fileData}
+				contentType={response.contentType}
+				extractedImages={response.extractedImages}
+			/>
+		);
 	};
 
 	const shouldShowError =
 		status === "error" || status === "disconnected" || status === "failed";
-
-	const [steps, setSteps] = useState<WorkflowStep[]>([]);
-
-	useEffect(() => {
-		if (!rawResponses || rawResponses.length === 0) {
-			setSteps([]);
-			return;
-		}
-		// Normalize and update steps
-		const normalized = rawResponses.map(normalizeWorkflowResponse);
-
-		// Merge by id (replace if exists, add if new)
-		setSteps((prev) => {
-			const map = new Map(prev.map((s) => [s.id, s]));
-			normalized.forEach((step) =>
-				map.set(step.id, { ...map.get(step.id), ...step })
-			);
-			return Array.from(map.values());
-		});
-	}, [rawResponses]);
 
 	return (
 		<>
@@ -190,7 +76,7 @@ export default function ResponsePanel({
 				<TestProgressIndicator
 					status={status}
 					progress={progress}
-					currentStep={currentStep}
+					currentStep={currentStep ? String(currentStep) : undefined}
 				/>
 			)}
 			<ScrollArea className="h-[calc(100%-5.2rem)] py-3 px-4">
@@ -209,33 +95,32 @@ export default function ResponsePanel({
 								</p>
 							</div>
 						</div>
+					) : responses.length === 0 ? (
+						status === "idle" ? (
+							<div className="space-y-2">
+								<div className="border border-gray rounded-lg overflow-hidden p-4">
+									<div className="flex items-center gap-2">
+										<Skeleton className="h-4 w-4 rounded-full" />
+										<Skeleton className="h-4 w-32" />
+										<Skeleton className="h-3 w-16" />
+									</div>
+								</div>
+							</div>
+						) : (
+							<div className="text-center text-muted-foreground py-8">
+								<p>
+									No responses yet. Run a test to see results.
+								</p>
+							</div>
+						)
 					) : (
 						<Accordion
 							type="single"
 							collapsible
 							className="space-y-2"
 						>
-							{!steps || steps.length === 0 ? (
-								<div>No steps yet.</div>
-							) : (
-								steps.map((step) => (
-									<div
-										key={step.id}
-										style={{ marginBottom: 16 }}
-									>
-										<div>
-											{step.status === "success"
-												? "✔️"
-												: step.status === "error"
-												? "❌"
-												: step.status === "processing"
-												? "⏳"
-												: "…"}{" "}
-											<b>{step.name}</b> [ID: {step.id}]
-										</div>
-										<div>{step.message}</div>
-									</div>
-								))
+							{responses.map((response, index) =>
+								renderResponseItem(response, index)
 							)}
 						</Accordion>
 					)}
